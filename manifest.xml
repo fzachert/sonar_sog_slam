@@ -1,0 +1,21 @@
+<package>
+  <description brief="Sonarfeature based sog-slam library">
+  
+  </description>
+  <author>Fabio Zachert/fzachert@tzi.de</author>
+  <license></license>
+  <url>http://</url>
+  <logo>http://</logo>
+  <depend package="base/cmake" />
+  <!--
+   To add any dependencies use the depend tag
+  <depend package="dummy-dependency-0" />
+	...
+  <depend package="dummy-dependency-n-1" />
+  <depend package="dummy-dependency-n" />
+  -->
+  <depend package="base/types" />
+  <depend package="auv_avalon/uw_localization" />
+  <depend package="auv_avalon/sonar_image_feature_extractor" />
+  <depend package="auv_avalon/machine_learning" />
+</package>

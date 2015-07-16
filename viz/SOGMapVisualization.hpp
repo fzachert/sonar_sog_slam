@@ -5,6 +5,7 @@
 #include <vizkit3d/Vizkit3DPlugin.hpp>
 #include <osg/Geode>
 #include <sonar_sog_slam/maps/sog_map.hpp>
+#include "ColoredUncertainty.hpp"
 
 namespace vizkit3d
 {
@@ -26,8 +27,8 @@ namespace vizkit3d
         virtual void updateDataIntern(sonar_sog_slam::SOG_Map const& plan);
         
     private:
-        struct Data;
-        Data* p;
+        sonar_sog_slam::SOG_Map map;
+	std::vector<ColoredUncertainty*> gaussians;
     };
 }
 #endif

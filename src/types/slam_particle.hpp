@@ -9,12 +9,11 @@ namespace sonar_sog_slam
 {
     struct slam_particle{
       
-      SOG filter;
-      base::Vector3d pos;
-      double confidence;
-      bool valid;    
+  
       
       
-    }
+    };
     
 }
+
+#endif

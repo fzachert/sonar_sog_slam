@@ -18,23 +18,18 @@ namespace sonar_sog_slam
           bool visable;
       
         public: 
-            /**
-             * Print a welcome to stdout
-             * \return nothing
-             */
-            void welcome();
 	    
 	    void init(base::Vector3d mean, base::Matrix3d cov, double weight);
 	    
 	    template <unsigned int INPUT_SIZE>
-	    void measurement( Eigen::Matrix<double, INPUT_SIZE, 1> z, Eigen::Matrix<double, INPUT_SIZE, 1> h, Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE> sigmaZ, Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE> H){
+	    void measurement( Eigen::Matrix<double, INPUT_SIZE, 1> z, Eigen::Matrix<double, INPUT_SIZE, 1> h, Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE> sigmaZ, Eigen::Matrix<double, INPUT_SIZE, 3> H){
 	      
 	      Eigen::Matrix<double, INPUT_SIZE, 1> inovation = z - h;
-	      Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE> kgain =
-		cov * H.transpose * ((H * cov * H.transpose) +  sigmaZ).inverse();
+	      Eigen::Matrix<double, 3, INPUT_SIZE> kgain =
+		cov * H.transpose() * ((H * cov * H.transpose()) +  sigmaZ).inverse();
 	      
 		state = state + kgain * inovation;
-		cov  = (Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE>::Identity() - kgain*H)*cov;
+		cov  = (Eigen::Matrix3d::Identity() - kgain*H)*cov;
 		
 	    }
 	    
@@ -47,18 +42,14 @@ namespace sonar_sog_slam
 	    }
 	    
 	    template <unsigned int INPUT_SIZE>
-	    double calcLikelihood( Eigen::Matrix<double, INPUT_SIZE, 1> z, Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE> H){
-	      	
+	    double calcLikelihood( Eigen::Matrix<double, INPUT_SIZE, 1> z, Eigen::Matrix<double, INPUT_SIZE, 1> h, Eigen::Matrix<double, INPUT_SIZE, 3> H, Eigen::Matrix<double, INPUT_SIZE, INPUT_SIZE> sigmaZ){     
 	      
 	      
-	      return 0;
+	      return machine_learning::calc_gaussian_norm<INPUT_SIZE>(h, (H * cov * H.transpose()) + sigmaZ, z) ;
 	    }
 	    
 	    double& getWeight(){ return weight; } ;
-	    
-	    bool isInVerticalAngularRange( double minPitchAngle, double maxPitchAngle);
-	    
-	    bool isInHorizontalAngularRange( double minYawAngle, double maxYawAngle); 
+ 
 	    
 	    bool& isVisable(){ return visable;};  
 	    

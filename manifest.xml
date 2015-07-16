@@ -18,4 +18,6 @@
   <depend package="auv_avalon/uw_localization" />
   <depend package="auv_avalon/sonar_image_feature_extractor" />
   <depend package="auv_avalon/machine_learning" />
+  
+  <depend package="gui/vizkit3d" />
 </package>

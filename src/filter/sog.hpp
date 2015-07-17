@@ -15,7 +15,7 @@ namespace sonar_sog_slam
 	public:
 	  std::list<EKF> gaussians;
       
-	private:
+	protected:
 	  
           
 
@@ -48,11 +48,6 @@ namespace sonar_sog_slam
 	    
 	  }
 	  
-	    void updateWeights( ){
-	      
-		//TODO
-	    }
-
 
 	    void normalizeWeights(){
 	      
@@ -208,7 +203,7 @@ namespace sonar_sog_slam
 
 
   
-	    virtual void init(Eigen::Matrix<double, MODEL_DIM2, 1> z, Eigen::Matrix<double, MODEL_DIM2, MODEL_DIM2> cov_z, int number_of_gaussians, double K = 0.4);
+	    virtual void init(Eigen::Matrix<double, MODEL_DIM2, 1> z, Eigen::Matrix<double, MODEL_DIM2, MODEL_DIM2> cov_z, int number_of_gaussians, double K = 0.4) = 0;
 	    	    
 	    virtual Eigen::Matrix<double, MODEL_DIM1, 1> measurement_model_visable( base::Vector3d landmark) = 0;
 	    
@@ -217,8 +212,6 @@ namespace sonar_sog_slam
 	    virtual Eigen::Matrix<double, MODEL_DIM1, 3> jacobi_measurement_model_visable( base::Vector3d landmark) = 0;
 	    
 	    virtual Eigen::Matrix<double, MODEL_DIM2, 3> jacobi_measurement_model_invisable( base::Vector3d landmark) = 0;	    
-	    
-//	    virtual void negative_measurement<
 	    
 	    virtual bool isVisable( base::Vector3d landmark) = 0;
 

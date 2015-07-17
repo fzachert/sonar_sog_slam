@@ -17,13 +17,11 @@ namespace sonar_sog_slam
     class ParticleFeature : public SOG<2,3>    
     {
 	private: 
-	  Particle *p;
-	  	  
+	  Particle *p;	  
 	  
 	public:
 	  
-	    bool seen;
-	  
+	    bool seen;	  
 	  
 	    virtual void init(Eigen::Vector3d z, Eigen::Matrix3d cov_z, int number_of_gaussians, double K = 0.4);
 	  	    
@@ -39,7 +37,9 @@ namespace sonar_sog_slam
 	    
 	    bool is_in_sensor_range();
 	    
-	    void setUnsee();
+	    double negative_update();
+	    
+	    void setUnseen();
 	    
 	    
     };

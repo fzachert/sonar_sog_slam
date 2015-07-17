@@ -3,6 +3,7 @@
 
 #include <list>
 #include <base/Eigen.hpp>
+#include <base/Time.hpp>
 #include <base/samples/RigidBodyState.hpp>
 #include "particle_feature.hpp"
 #include "../maps/sog_map.hpp"
@@ -16,18 +17,22 @@ namespace sonar_sog_slam
 
 	    std::list<ParticleFeature> features;
 	  
+	    
+	    
 	    base::Vector3d pos;
 	    base::Vector3d velocity;
 	    double yaw_offset;
 	    base::Orientation ori;
 	    
+	    static base::Time time;
 	    static ModelConfig model_config;
 	    static base::Orientation global_orientation;
 	    static double global_depth;
-	    
+	    	    
 	    double main_confidence;	    
 	    
 	    SOG_Map getMap();
+	    void setUnseen();
 	    
 	    
     };

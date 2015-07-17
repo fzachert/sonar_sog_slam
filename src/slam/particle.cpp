@@ -2,6 +2,11 @@
 
 using namespace sonar_sog_slam;
 
+base::Time Particle::time = base::Time();
+ModelConfig Particle::model_config = ModelConfig();
+base::Orientation Particle::global_orientation = base::Orientation::Identity();
+double Particle::global_depth = 0.0;
+
 SOG_Map Particle::getMap(){
   SOG_Map map;
   
@@ -21,4 +26,14 @@ SOG_Map Particle::getMap(){
   
   return map;
 }
+
+void Particle::setUnseen(){
+  
+  for(std::list<ParticleFeature>::iterator it = features.begin(); it != features.end(); it++){
+    
+    it->setUnseen();
+  }
+  
+}
+
 

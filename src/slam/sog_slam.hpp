@@ -28,6 +28,8 @@ namespace sonar_sog_slam
 	  FilterConfig config;
 	  ModelConfig model_config;
 	  
+	  boost::minstd_rand *seed;
+	  
 	  void init_particles( unsigned int number_of_particles);
 	  
 	  double perception_positive(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z);
@@ -44,6 +46,12 @@ namespace sonar_sog_slam
 	  
 	  virtual base::Position position(const Particle& X) const { return X.pos; }
 	  virtual base::Vector3d velocity(const Particle& X) const { return base::Vector3d::Zero(); }
+	  virtual base::samples::RigidBodyState orientation(const Particle& X) const {
+	    base::samples::RigidBodyState rbs;
+	    rbs.orientation = X.ori;
+	    return rbs;
+	  }
+	  virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& motion) { return motion.time; }
 	  virtual bool isValid(const Particle& X) const {return true; }
 	  virtual void setValid(Particle &X, bool flag){ }
 	  
@@ -51,14 +59,19 @@ namespace sonar_sog_slam
 	  virtual void setConfidence(Particle& X, double weight) {X.main_confidence = weight; }
 	  
 	  
-	  virtual void dynamic(Particle &X, const base::samples::RigidBodyState &u, DummyMap &m);
+	  virtual void dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m);
 	    
 	  virtual double perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m);  
 	    
 	  
 	  double observeFeatures( const sonar_image_feature_extractor::SonarFeatures &z, double weight);
 	  
-	    
+	  
+	  void set_depth( const double &depth);
+	  
+	  void set_orientation(  const base::Orientation &ori);
+	  
+	  void set_timestamp( const base::Time time);  
 	    
     };
 

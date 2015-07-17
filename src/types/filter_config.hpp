@@ -18,6 +18,8 @@ namespace sonar_sog_slam
       
       double new_feature_probability;
       
+      double sonar_weight;
+      
       bool use_markov;
       
     };

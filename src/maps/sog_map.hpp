@@ -3,7 +3,6 @@
 
 #include <base/Eigen.hpp>
 #include <base/Time.hpp>
-#include "../filter/sog.hpp"
 #include <vector>
 
 namespace sonar_sog_slam

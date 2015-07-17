@@ -132,11 +132,56 @@ bool ParticleFeature::isVisable( base::Vector3d landmark){
 
 bool ParticleFeature::is_in_sensor_range(){
   
+  base::Vector3d sensor_pos = p->pos + p->model_config.sonar_pos;
+  bool visable = false;
   
-  //TODO
-  return true;
+  
+  for(std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
+    
+    double range = (sensor_pos - it->state).norm();
+    double angle_vertical = std::atan2( it->state.y() - sensor_pos.y(), it->state.x() - sensor_pos.x()) - base::getYaw( p->ori );
+    double angle_horizontal = std::asin( (it->state.z() - sensor_pos.z()) / range) - base::getPitch( p->ori );
+    
+    if( range < p->model_config.max_range 
+      && angle_vertical < p->model_config.sonar_vertical_angle + p->model_config.vertical_opening_angle
+      && angle_vertical > p->model_config.sonar_vertical_angle - p->model_config.vertical_opening_angle
+      && std::fabs( angle_horizontal ) < p->model_config.horizontal_opening_angle ){
+      
+      visable = true;
+      it->visable = true;
+    }else{
+      it->visable = false;
+    }
+    
+  }  
+
+  return visable;
+}
+
+void ParticleFeature::setUnseen(){
+  
+  seen = false;
 }
 
 
+double ParticleFeature::negative_update(){  
+  
+  double negative_weight_sum = 0.0;
+  
+  for( std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
+    
+    if(it->visable){
+      negative_weight_sum += it->weight;
+      it->weight = it->weight * p->model_config.negative_likelihood;
+    }
+    
+  }
+  
+    
+  normalizeWeights();  
+  
+  return ( negative_weight_sum * p->model_config.negative_likelihood  ) 
+    + ( ( 1.0 - negative_weight_sum ) * 1.0 );
+}
 
 

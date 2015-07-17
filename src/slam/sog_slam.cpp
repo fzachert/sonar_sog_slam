@@ -6,6 +6,7 @@ SOG_Slam::SOG_Slam(){
   
   StaticSpeedNoise = 0;
   StaticOrientationNoise = 0;
+  seed = new boost::minstd_rand( static_cast<uint32_t>(time(0)));
 }
 
 SOG_Slam::~SOG_Slam(){
@@ -24,10 +25,9 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   
   delete StaticSpeedNoise;
   delete StaticOrientationNoise;
-  boost::minstd_rand seed(static_cast<uint32_t>(time(0))); //TODO
   
-  StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>(seed, Eigen::Vector2d(0.0, 0.0), config.speed_covariance);
-  StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( seed, Eigen::Matrix< double , 1 , 1>::Zero(), Eigen::Matrix< double, 1,1>(config.orientation_drift_variance) );
+  StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), config.speed_covariance);
+  StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1>::Zero(), Eigen::Matrix< double, 1,1>(config.orientation_drift_variance) );
 
   init_particles(config.number_of_particles);
  
@@ -63,7 +63,7 @@ double SOG_Slam::observeFeatures( const sonar_image_feature_extractor::SonarFeat
 }
 
 
-void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, DummyMap &m){
+void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m){
   
   if(!last_velocity_sample.isNull()){
     
@@ -74,6 +74,7 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, Dumm
     X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * X.global_orientation) ;
     
     X.pos += X.ori * (noisy_vel * dt);
+    X.pos.z() = Particle::global_depth;
     X.velocity = noisy_vel;
     
   }
@@ -87,7 +88,9 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, Dumm
 
 
 double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m){
-  
+  X.setUnseen();
+  X.pos.z() = Particle::global_depth;
+  X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * X.global_orientation) ;
   
   return perception_positive( X, z) * perception_negative( X, z);
   
@@ -96,6 +99,7 @@ double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::So
 
 double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z){
   double prob = 1.0;
+  
   
   for(std::vector<sonar_image_feature_extractor::Feature>::const_iterator it_z = z.features.begin(); it_z != z.features.end(); it_z++){
     
@@ -107,6 +111,9 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     
         
     for( std::list<ParticleFeature>::iterator it_p = X.features.begin(); it_p != X.features.end(); it_z++){
+      
+       if(it_p->seen)
+	 continue;
       
        double prob_temp = it_p->calcLikelihood( meas, config.sigmaZ);
       
@@ -131,6 +138,8 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       max_map_feature->measurement( meas, config.sigmaZ);
       
       max_prob = max_map_feature->calcLikelihood( meas, config.sigmaZ);
+      
+      max_map_feature->seen = true;
     }
     
     prob = prob * max_prob;
@@ -145,12 +154,11 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
   
   for( std::list<ParticleFeature>::iterator it = X.features.begin(); it != X.features.end(); it++){
     
-    if( ! it->seen && it->is_in_sensor_range()){
+    if( (! it->seen) && it->is_in_sensor_range()){
       
-//      X.negativeUpdate(z);
+      prob *= it->negative_update();
       
-    }
-    
+    }    
     
   }
   
@@ -158,7 +166,23 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
   return prob;
 }
 
+void SOG_Slam::set_depth( const double &depth){
+  
+  Particle::global_depth = depth;
+  
+}
+	  
+void SOG_Slam::set_orientation(  const base::Orientation &ori){
+  
+  Particle::global_orientation = ori;
+  
+}
 
+void SOG_Slam::set_timestamp( const base::Time time){
+  
+  Particle::time = time;
+  
+}
 
 
 

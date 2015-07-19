@@ -5,6 +5,7 @@
 #include "../filter/sog.hpp"
 #include "../types/filter_config.hpp"
 #include "../types/model_config.hpp"
+#include "../types/debug_types.hpp"
 #include "../maps/sog_map.hpp"
 #include "particle.hpp"
 #include <uw_localization/filters/particle_filter.hpp>
@@ -27,6 +28,7 @@ namespace sonar_sog_slam
 	  
 	  FilterConfig config;
 	  ModelConfig model_config;
+	  DebugOutput debug;
 	  
 	  boost::minstd_rand *seed;
 	  
@@ -71,7 +73,12 @@ namespace sonar_sog_slam
 	  
 	  void set_orientation(  const base::Orientation &ori);
 	  
-	  void set_timestamp( const base::Time time);  
+	  void set_timestamp( const base::Time time);
+	  
+	  SOG_Map getMap();
+	  
+	  DebugOutput getDebug();
+	  
 	    
     };
 

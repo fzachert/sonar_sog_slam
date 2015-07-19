@@ -54,12 +54,17 @@ void SOG_Slam::init_particles( unsigned int number_of_particles){
 double SOG_Slam::observeFeatures( const sonar_image_feature_extractor::SonarFeatures &z, double weight){
   
   DummyMap m;
+  double neff;
+  
   if(config.use_markov){
-    return observe_markov(z, m, weight);
+    neff = observe_markov(z, m, weight);
   }else{
-    return observe(z, m, weight);
+    neff = observe(z, m, weight);
   }
   
+  debug.effective_sample_size = neff;
+  
+  return neff;
 }
 
 
@@ -183,6 +188,34 @@ void SOG_Slam::set_timestamp( const base::Time time){
   Particle::time = time;
   
 }
+
+SOG_Map SOG_Slam::getMap(){
+  
+  double best_confidence = 0.0;
+  std::list<Particle>::iterator best_it;
+  
+  for(std::list<Particle>::iterator it = particles.begin(); it != particles.end(); it++){
+    
+    if(it->main_confidence > best_confidence){
+      best_confidence = it->main_confidence;
+      best_it = it;
+    }
+    
+  }
+  
+  if( best_confidence > 0.0)
+    return best_it->getMap();
+  else
+    return SOG_Map();
+  
+}
+
+DebugOutput SOG_Slam::getDebug(){
+  return debug;
+}
+
+
+
 
 
 

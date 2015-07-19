@@ -16,10 +16,8 @@ namespace sonar_sog_slam
   
     class ParticleFeature : public SOG<2,3>    
     {
-	private: 
+	public: 
 	  Particle *p;	  
-	  
-	public:
 	  
 	    bool seen;	  
 	  

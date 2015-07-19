@@ -11,13 +11,13 @@
 
 namespace sonar_sog_slam
 {
+    class ParticleFeature;  
+  
     class Particle    
     {
 	public: 
 
-	    std::list<ParticleFeature> features;
-	  
-	    
+	    std::list<ParticleFeature> features;	    
 	    
 	    base::Vector3d pos;
 	    base::Vector3d velocity;

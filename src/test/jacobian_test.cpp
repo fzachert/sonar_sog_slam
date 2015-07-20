@@ -3,12 +3,14 @@
 #include "../types/model_config.hpp"
 #include <base/Eigen.hpp>
 #include <iostream>
+#include <math.h>
 
 using namespace sonar_sog_slam;
 
-void check_jacobian_visable(){
+bool check_jacobian_visable(base::Vector3d state){
   ModelConfig mc;
   Particle p;
+  double dist;
   ParticleFeature pf;
   p.pos = base::Vector3d(1.0, 1.0, -3.0);
   p.ori = base::Orientation::Identity();
@@ -22,7 +24,6 @@ void check_jacobian_visable(){
   mc.horizontal_opening_angle = 1.5;
   Particle::model_config = mc;
   
-  base::Vector3d state(14.0, 5.0, -4.0);
   base::Vector3d state_temp = state;
   
   Eigen::Matrix<double, 2,3> jacobi_num, jacobi_calc;
@@ -46,14 +47,15 @@ void check_jacobian_visable(){
   std::cout << "Measurement jocobian (analyticaly): " << std::endl;
   std::cout << jacobi_calc << std::endl;  
   
-  
+  return jacobi_num.isApprox(jacobi_calc, 0.1);
 }
 
 
-void check_jacobian_invisable(){
+bool check_jacobian_invisable(base::Vector3d state){
   
   ModelConfig mc;
   Particle p;
+  double dist;
   ParticleFeature pf;
   p.pos = base::Vector3d(1.0, 1.0, -3.0);
   p.ori = base::Orientation::Identity();
@@ -66,7 +68,6 @@ void check_jacobian_invisable(){
   mc.max_range = 16;
   mc.horizontal_opening_angle = 1.5;
   
-  base::Vector3d state(14.0, 5.0, -4.0);
   base::Vector3d state_temp = state;
   
   Eigen::Matrix<double, 3,3> jacobi_num, jacobi_calc;
@@ -88,17 +89,32 @@ void check_jacobian_invisable(){
   std::cout << "Measurement jocobian (invisable, numeric): " << std::endl;
   std::cout << jacobi_num << std::endl;
   std::cout << "Measurement jocobian (invisable, analyticaly): " << std::endl;
-  std::cout << jacobi_calc << std::endl;     
+  std::cout << jacobi_calc << std::endl;
   
   
-  
+  return jacobi_num.isApprox(jacobi_calc, 0.1);
 }
 
 
 int main (int argc, char *argv[]) { 
   
-  check_jacobian_visable();
-  check_jacobian_invisable();
+  int errors = 0;
+  
+  for( double d = -3; d < 3; d += 0.1){
+  
+    base::Vector3d state( std::cos(d) * 14.0, std::sin(d) * 5.0, -4.0);  
+    std::cout << "----------------------------------------" << std::endl;
+    std::cout << "State: " << state.transpose() << std::endl;
+    if (check_jacobian_visable( state) && check_jacobian_invisable( state)){
+            
+    }else{
+      std::cout << "Error in jacobian!!!" << std::endl;
+      errors++;
+    }
+    
+  }
+  
+  std::cout << "Got " << errors << " errors." << std::endl;
   
   return 0;
 } 

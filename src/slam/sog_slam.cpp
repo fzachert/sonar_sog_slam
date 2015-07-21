@@ -43,6 +43,7 @@ void SOG_Slam::init_particles( unsigned int number_of_particles){
     p.pos = base::Vector3d::Zero(); 
     p.yaw_offset = 0.0;
     p.main_confidence = 1.0 / (double)number_of_particles;
+    p.candidate_filter.init( model_config);
     
     particles.push_back(p);
     
@@ -63,6 +64,11 @@ double SOG_Slam::observeFeatures( const sonar_image_feature_extractor::SonarFeat
   }
   
   debug.effective_sample_size = neff;
+  
+  if( neff < config.effective_sample_size_threshold)
+  {
+    resample();
+  }
   
   return neff;
 }
@@ -131,11 +137,15 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     
     if( max_map_feature == X.features.end()){ //Create new feature
       
-      ParticleFeature pf;
+      if(X.candidate_filter.check_candidate( it_z->range, it_z->angle_h, &X) ){
       
-      pf.init( meas, config.sigmaZ, config.number_of_gaussians, config.K);
-      
-      X.features.push_back(pf);
+	ParticleFeature pf;
+	pf.p = &X;
+	pf.init( meas, config.sigmaZ, config.number_of_gaussians, config.K);
+	
+	X.features.push_back(pf);
+	
+      }
       
     }else{
       
@@ -150,6 +160,8 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     prob = prob * max_prob;
     
   }
+  
+  X.candidate_filter.reduce_candidates();
   
   return prob;
 }

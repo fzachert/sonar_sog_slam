@@ -17,6 +17,10 @@ namespace sonar_sog_slam
       double max_range;
       double horizontal_opening_angle;
       
+      int candidate_threshold;
+      double candidate_distance;
+      
+      
     };
     
 }

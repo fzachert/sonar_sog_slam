@@ -8,16 +8,19 @@
 #include "particle_feature.hpp"
 #include "../maps/sog_map.hpp"
 #include "../types/model_config.hpp"
+#include "../filter/candidate_filter.hpp"
 
 namespace sonar_sog_slam
 {
-    class ParticleFeature;  
+    class ParticleFeature;
+    class CandidateFilter;
   
     class Particle    
     {
 	public: 
 
 	    std::list<ParticleFeature> features;	    
+	    CandidateFilter candidate_filter;
 	    
 	    base::Vector3d pos;
 	    base::Vector3d velocity;

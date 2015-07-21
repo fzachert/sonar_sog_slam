@@ -20,6 +20,7 @@ namespace sonar_sog_slam
       
       double sonar_weight;
       
+      double effective_sample_size_threshold;
       bool use_markov;
       
     };

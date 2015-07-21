@@ -31,6 +31,7 @@ void Particle::setUnseen(){
   
   for(std::list<ParticleFeature>::iterator it = features.begin(); it != features.end(); it++){
     
+    it->p = this;
     it->setUnseen();
   }
   

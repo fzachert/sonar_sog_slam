@@ -1,4 +1,5 @@
 #include "sog_slam.hpp"
+#include <base/logging.h>
 
 using namespace sonar_sog_slam;
 
@@ -19,6 +20,8 @@ SOG_Slam::~SOG_Slam(){
 
 void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){ 
   
+  LOG_DEBUG_S << "Start initializing sog-slam";
+  
   this->config = config;
   this->model_config = mconfig;
   Particle::model_config = mconfig;
@@ -27,10 +30,12 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   delete StaticOrientationNoise;
   
   StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), config.speed_covariance);
-  StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1>::Zero(), Eigen::Matrix< double, 1,1>(config.orientation_drift_variance) );
+  StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1, Eigen::DontAlign>::Zero(), Eigen::Matrix< double, 1, 1, Eigen::DontAlign>::Constant(config.orientation_drift_variance) );
 
   init_particles(config.number_of_particles);
  
+  LOG_DEBUG_S << "Initialized sog-slam" << std::endl;
+  
 }
 
 void SOG_Slam::init_particles( unsigned int number_of_particles){
@@ -76,9 +81,9 @@ double SOG_Slam::observeFeatures( const sonar_image_feature_extractor::SonarFeat
 
 void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m){
   
-  if(!last_velocity_sample.isNull()){
+  if(!X.time.isNull()){
     
-    double dt = u.time.toSeconds() - last_velocity_sample.toSeconds();
+    double dt = u.time.toSeconds() - X.time.toSeconds();
     base::Vector3d noisy_vel = u.velocity;
     noisy_vel.block<2,1>(0,0) += (*StaticSpeedNoise)() * dt;
     X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
@@ -90,7 +95,7 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
     
   }
   
-   last_velocity_sample = u.time;
+  X.time = u.time;
   
 }
 
@@ -99,6 +104,10 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
 
 
 double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m){
+  
+  LOG_DEBUG_S << "Perception for particle " << X.pos.transpose() << " with weight " << X.main_confidence
+    << " and " << X.features.size() << " features.";
+  
   X.setUnseen();
   X.pos.z() = Particle::global_depth;
   X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * X.global_orientation) ;
@@ -114,6 +123,9 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
   
   for(std::vector<sonar_image_feature_extractor::Feature>::const_iterator it_z = z.features.begin(); it_z != z.features.end(); it_z++){
     
+    if(it_z->range > model_config.max_range)
+      continue;    
+    
     base::Vector3d meas( it_z->range, it_z->angle_h, model_config.sonar_vertical_angle); 
         
     bool new_feature = true;
@@ -121,7 +133,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     std::list<ParticleFeature>::iterator max_map_feature = X.features.end();
     
         
-    for( std::list<ParticleFeature>::iterator it_p = X.features.begin(); it_p != X.features.end(); it_z++){
+    for( std::list<ParticleFeature>::iterator it_p = X.features.begin(); it_p != X.features.end(); it_p++){
       
        if(it_p->seen)
 	 continue;
@@ -141,7 +153,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       
 	ParticleFeature pf;
 	pf.p = &X;
-	pf.init( meas, config.sigmaZ, config.number_of_gaussians, config.K);
+	pf.init( meas, model_config.sigmaZ, config.number_of_gaussians, config.K);
 	
 	X.features.push_back(pf);
 	
@@ -169,11 +181,27 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
 double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z){
   double prob = 1.0;
   
+  LOG_DEBUG_S << "Negative update with " << X.features.size() << " features.";
+  
   for( std::list<ParticleFeature>::iterator it = X.features.begin(); it != X.features.end(); it++){
+    
+    LOG_DEBUG_S << "Check feature";
     
     if( (! it->seen) && it->is_in_sensor_range()){
       
+      LOG_DEBUG_S << "Negative measurement";
+      
       prob *= it->negative_update();
+      
+      if( it->gaussians.size() == 0){
+	
+	it = X.features.erase(it);
+	LOG_DEBUG_S << "Erase Feature";
+	
+	if(it != X.features.begin())
+	  it--;
+	
+      }
       
     }    
     
@@ -195,11 +223,6 @@ void SOG_Slam::set_orientation(  const base::Orientation &ori){
   
 }
 
-void SOG_Slam::set_timestamp( const base::Time time){
-  
-  Particle::time = time;
-  
-}
 
 SOG_Map SOG_Slam::getMap(){
   

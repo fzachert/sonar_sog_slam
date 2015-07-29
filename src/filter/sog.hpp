@@ -115,7 +115,7 @@ namespace sonar_sog_slam
 		    sigmaZ, jacobi_measurement_model_invisable( it->state) );
 		  		  
 		}
-		
+		it->counter++;
 	      }	
 	      
 	      updateWeights(z, sigmaZ);

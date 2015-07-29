@@ -1,4 +1,5 @@
 #include "particle.hpp"
+#include <base/logging.h>
 
 
 using namespace sonar_sog_slam;
@@ -19,9 +20,9 @@ void ParticleFeature::init(Eigen::Vector3d z, Eigen::Matrix3d cov_z, int number_
   for( int i = 0; i < number_of_gaussians; i++){
     
     base::Vector3d mean = base::Vector3d::Zero();
-    mean(0) = cos( angle) * cos( min_pitch_angle + ((i + 0.5) * angle_step )  );
-    mean(1) = sin( angle) * cos( min_pitch_angle + ((i + 0.5) * angle_step )  ); 
-    mean(2) = sin( min_pitch_angle + ((i + 0.5) * angle_step)  );
+    mean(0) = range * cos( angle) * cos( min_pitch_angle + ((i + 0.5) * angle_step )  );
+    mean(1) = range * sin( angle) * cos( min_pitch_angle + ((i + 0.5) * angle_step )  ); 
+    mean(2) = range * sin( min_pitch_angle + ((i + 0.5) * angle_step)  );
     
     base::Matrix3d cov = base::Matrix3d::Identity();
     cov(0,0) = cov_z(0,0);
@@ -48,7 +49,9 @@ void ParticleFeature::init(Eigen::Vector3d z, Eigen::Matrix3d cov_z, int number_
     
     EKF ekf;
     ekf.init( mean + p->pos + ( p->ori * p->model_config.sonar_pos) , rot * cov * rot.transpose(), 1.0 / (double)number_of_gaussians );
-   
+    ekf.counter = p->model_config.candidate_threshold;
+    
+    
     gaussians.push_back(ekf);
     
   } 
@@ -172,7 +175,18 @@ double ParticleFeature::negative_update(){
     
     if(it->visable){
       negative_weight_sum += it->weight;
+      it->counter--;
       it->weight = it->weight * p->model_config.negative_likelihood;
+      
+      if(it->counter == 0){
+	
+	it = gaussians.erase(it);
+	
+	if(it != gaussians.begin())
+	  it--;
+	
+      }      
+      
     }
     
   }

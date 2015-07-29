@@ -47,9 +47,10 @@ namespace sonar_sog_slam
 	  void init(FilterConfig config, ModelConfig mconfig);
 	  
 	  virtual base::Position position(const Particle& X) const { return X.pos; }
-	  virtual base::Vector3d velocity(const Particle& X) const { return base::Vector3d::Zero(); }
+	  virtual base::Vector3d velocity(const Particle& X) const { return X.velocity; }
 	  virtual base::samples::RigidBodyState orientation(const Particle& X) const {
 	    base::samples::RigidBodyState rbs;
+	    rbs.time = X.time;
 	    rbs.orientation = X.ori;
 	    return rbs;
 	  }
@@ -72,8 +73,6 @@ namespace sonar_sog_slam
 	  void set_depth( const double &depth);
 	  
 	  void set_orientation(  const base::Orientation &ori);
-	  
-	  void set_timestamp( const base::Time time);
 	  
 	  SOG_Map getMap();
 	  

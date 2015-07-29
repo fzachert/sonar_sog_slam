@@ -42,7 +42,7 @@ private:
 
     size_t num_samples;
     int dim;
-    osg::Vec4 color;
+    osg::Vec4 draw_color;
 };
 
 }

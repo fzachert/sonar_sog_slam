@@ -103,7 +103,7 @@ void ColoredUncertainty::setCovariance( const Eigen::Matrix3d& cov )
 }
 
 void ColoredUncertainty::setColor( const osg::Vec4 &color){
-  this->color = color;
+  this->draw_color = color;
 }
 
 void ColoredUncertainty::redraw( int dim )

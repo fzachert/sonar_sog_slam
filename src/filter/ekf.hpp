@@ -16,6 +16,7 @@ namespace sonar_sog_slam
 	  base::Vector3d state;
 	  base::Matrix3d cov;
           bool visable;
+	  unsigned int counter;
       
         public: 
 	    

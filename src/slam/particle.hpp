@@ -10,6 +10,7 @@
 #include "../types/model_config.hpp"
 #include "../filter/candidate_filter.hpp"
 
+
 namespace sonar_sog_slam
 {
     class ParticleFeature;
@@ -19,6 +20,8 @@ namespace sonar_sog_slam
     {
 	public: 
 
+	    base::Time time;
+	  
 	    std::list<ParticleFeature> features;	    
 	    CandidateFilter candidate_filter;
 	    
@@ -27,7 +30,6 @@ namespace sonar_sog_slam
 	    double yaw_offset;
 	    base::Orientation ori;
 	    
-	    static base::Time time;
 	    static ModelConfig model_config;
 	    static base::Orientation global_orientation;
 	    static double global_depth;

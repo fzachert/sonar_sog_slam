@@ -133,7 +133,7 @@ void ColoredUncertainty::addEllipse( int axis )
 {
     osg::ref_ptr<osg::Geometry> geom = new osg::Geometry;
     osg::ref_ptr<osg::Vec4Array> color = new osg::Vec4Array;
-    color->push_back(osg::Vec4(0,1,1,1));
+    color->push_back(draw_color);
     geom->setColorArray(color);
     geom->setColorBinding( osg::Geometry::BIND_OVERALL );
 

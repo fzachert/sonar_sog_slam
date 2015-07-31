@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * model_config.hpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file provides a configuration of the measurement-model
+ * ----------------------------------------------------------------------------
+*/
+
 #ifndef _SOGSSLAM_MODELCONFIG_HPP_
 #define _SOGSSLAM_MODELCONFIG_HPP_
 
@@ -19,6 +28,9 @@ namespace sonar_sog_slam
       
       int candidate_threshold;
       double candidate_distance;
+      
+      double reduction_weight_threshold;
+      double reduction_distance_threshold;
       
       
     };

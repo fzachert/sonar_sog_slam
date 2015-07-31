@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * candidate_filter.cpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file provides a candidate filter, which rejects outliers on a particle-basis
+ * ----------------------------------------------------------------------------
+*/
+
 #include "candidate_filter.hpp"
 #include "../slam/particle.hpp"
 #include <base/logging.h>

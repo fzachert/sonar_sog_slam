@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * filer_config.hpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file provides a configuration of the particle-filter
+ * ----------------------------------------------------------------------------
+*/
+
 #ifndef _SOGSSLAM_FILTERCONFIG_HPP_
 #define _SOGSSLAM_FILTERCONFIG_HPP_
 

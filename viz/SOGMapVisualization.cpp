@@ -57,9 +57,9 @@ void SOGMapVisualization::updateMainNode ( osg::Node* node )
       for(std::vector<sonar_sog_slam::Gaussian>::iterator it_gauss = it->gaussians.begin(); it_gauss != it->gaussians.end(); it_gauss++){
 	std::cout << "It gauss" << std::endl;	
 	ColoredUncertainty *cu = new ColoredUncertainty();
+	cu->setColor( osg::Vec4(it_gauss->weight,1.0 - it_gauss->weight, 0.0, 1.0 ) );
 	cu->setMean(static_cast<Eigen::Vector3d>( it_gauss->mean) );
-	cu->setCovariance( static_cast<Eigen::Matrix3d>( it_gauss->cov)   );
-	cu->setColor( osg::Vec4( d, 1 - d , 0.0, 1.0 ) );
+	cu->setCovariance( static_cast<Eigen::Matrix3d>( it_gauss->cov)   );	
 	cu->showSamples();
 	
 	gaussians.push_back(cu);
@@ -69,7 +69,21 @@ void SOGMapVisualization::updateMainNode ( osg::Node* node )
 	std::cout << "Added uncertainty" << std::endl;
       }
       
-    }  
+    }
+    
+    for(std::vector<sonar_sog_slam::Simple_Feature>::iterator it = map.simple_features.begin(); it != map.simple_features.end(); it++){
+    
+      
+      osg::Sphere* feature = new osg::Sphere( osg::Vec3( it->pos.x(), it->pos.y(), it->pos.z()), 0.1);
+      osg::ShapeDrawable* featureDrawable = new osg::ShapeDrawable(feature);
+      
+      osg::Geode* featureGeode = new osg::Geode();
+      featureGeode->addDrawable( featureDrawable);
+      
+      group->addChild( featureGeode );
+      
+    }
+    
     std::cout << "Update end" << std::endl;
 }
 

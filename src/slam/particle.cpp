@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * particle.cpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file provides a particle of the sog-slam-particle-filter
+ * ----------------------------------------------------------------------------
+*/
+
 #include "particle.hpp"
 #include <base/logging.h>
 
@@ -7,12 +16,14 @@ ModelConfig Particle::model_config = ModelConfig();
 base::Orientation Particle::global_orientation = base::Orientation::Identity();
 double Particle::global_depth = 0.0;
 
-SOG_Map Particle::getMap(){
+SOG_Map Particle::get_map(){
   SOG_Map map;
   map.time = this->time;
   
   for(std::list<ParticleFeature>::iterator it = features.begin(); it != features.end(); it++){
     SOG_Feature sf;    
+    Simple_Feature simple_f;
+    simple_f.pos = base::Vector3d::Zero();
     
     for( std::list<EKF>::iterator it_ekf = it->gaussians.begin(); it_ekf != it->gaussians.end(); it_ekf++){
       Gaussian g;
@@ -20,20 +31,47 @@ SOG_Map Particle::getMap(){
       g.cov = it_ekf->cov;
       g.weight = it_ekf->weight;
       sf.gaussians.push_back(g);
+      
+      simple_f.pos += it_ekf->weight * it_ekf->state;
     }
     
+    map.simple_features.push_back( simple_f);
     map.features.push_back(sf);
   } 
   
   return map;
 }
 
-void Particle::setUnseen(){
+void Particle::set_unseen(){
   
   for(std::list<ParticleFeature>::iterator it = features.begin(); it != features.end(); it++){
     
     it->p = this;
-    it->setUnseen();
+    it->set_unseen();
+  }
+  
+}
+
+void Particle::reduce_features(){
+  
+  for(std::list<ParticleFeature>::iterator it = features.begin(); it != features.end(); it++){
+    
+    for(std::list<ParticleFeature>::iterator it_ = features.begin(); it_ != features.end();){
+      
+      if( it != it_){
+      
+	if( (it->average_state - it->average_state).norm() < model_config.reduction_distance_threshold){
+	
+	  it->merge( *it_);
+	  it_ = features.erase(it_);
+	  continue;
+	}
+	
+      }
+      
+      it_++;
+      
+    }    
   }
   
 }

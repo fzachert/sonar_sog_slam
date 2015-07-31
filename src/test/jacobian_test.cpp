@@ -1,6 +1,15 @@
-#include "../slam/particle_feature.hpp"
-#include "../slam/particle.hpp"
-#include "../types/model_config.hpp"
+/* ----------------------------------------------------------------------------
+ * jacobian_test.hpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file tests the jocobians of the measurment-model, by calculating the numerical jacobian and checking the analytical
+ * ----------------------------------------------------------------------------
+*/
+
+#include "sonar_sog_slam/slam/particle_feature.hpp"
+#include "sonar_sog_slam/slam/particle.hpp"
+#include "sonar_sog_slam/types/model_config.hpp"
 #include <base/Eigen.hpp>
 #include <iostream>
 #include <math.h>

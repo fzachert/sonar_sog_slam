@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * sog_slam.cpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file implements the sog-slam, using a particle-filter
+ * ----------------------------------------------------------------------------
+*/
+
 #include "sog_slam.hpp"
 #include <base/logging.h>
 
@@ -57,7 +66,7 @@ void SOG_Slam::init_particles( unsigned int number_of_particles){
 }
 
 
-double SOG_Slam::observeFeatures( const sonar_image_feature_extractor::SonarFeatures &z, double weight){
+double SOG_Slam::observe_features( const sonar_image_feature_extractor::SonarFeatures &z, double weight){
   
   DummyMap m;
   double neff;
@@ -108,7 +117,7 @@ double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::So
   LOG_DEBUG_S << "Perception for particle " << X.pos.transpose() << " with weight " << X.main_confidence
     << " and " << X.features.size() << " features.";
   
-  X.setUnseen();
+  X.set_unseen();
   X.pos.z() = Particle::global_depth;
   X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * X.global_orientation) ;
   
@@ -138,7 +147,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
        if(it_p->seen)
 	 continue;
       
-       double prob_temp = it_p->calcLikelihood( meas, config.sigmaZ);
+       double prob_temp = it_p->calc_likelihood( meas, config.sigmaZ);
       
        if(prob_temp > max_prob){
 	 max_prob = prob;
@@ -164,7 +173,8 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       
       max_map_feature->measurement( meas, config.sigmaZ);
       
-      max_prob = max_map_feature->calcLikelihood( meas, config.sigmaZ);
+      max_map_feature->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold );
+      max_prob = max_map_feature->calc_likelihood( meas, config.sigmaZ);
       
       max_map_feature->seen = true;
     }
@@ -174,6 +184,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
   }
   
   X.candidate_filter.reduce_candidates();
+  X.reduce_features();
   
   return prob;
 }
@@ -192,6 +203,7 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
       LOG_DEBUG_S << "Negative measurement";
       
       prob *= it->negative_update();
+      it->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold);
       
       if( it->gaussians.size() == 0){
 	
@@ -224,7 +236,7 @@ void SOG_Slam::set_orientation(  const base::Orientation &ori){
 }
 
 
-SOG_Map SOG_Slam::getMap(){
+SOG_Map SOG_Slam::get_map(){
   
   double best_confidence = 0.0;
   std::list<Particle>::iterator best_it;
@@ -239,13 +251,53 @@ SOG_Map SOG_Slam::getMap(){
   }
   
   if( best_confidence > 0.0)
-    return best_it->getMap();
+    return best_it->get_map();
   else
     return SOG_Map();
   
 }
 
-DebugOutput SOG_Slam::getDebug(){
+DebugOutput SOG_Slam::get_debug(){
+  
+  double sum_features = 0.0;
+  double best_confidence = 0.0;
+  std::list<Particle>::iterator best_it;
+  
+  for(std::list<Particle>::iterator it = particles.begin(); it != particles.end(); it++){
+    
+    if(it->main_confidence > best_confidence){
+      best_confidence = it->main_confidence;
+      best_it = it;
+    }
+    
+    sum_features += it->features.size();
+    
+  }
+  
+  
+  if(best_confidence > 0.0){
+    debug.avg_number_of_features = sum_features / (double)particles.size();
+    debug.best_number_of_features = best_it->features.size();
+    
+    debug.best_max_number_of_gaussians = 0;
+    debug.best_avg_number_of_gaussians = 0.0;
+    int size;
+    
+    for(std::list<ParticleFeature>::iterator it_ekf = best_it->features.begin(); it_ekf != best_it->features.end(); it_ekf++){
+      
+      size = it_ekf->gaussians.size();
+      debug.best_avg_number_of_gaussians += size;
+      
+      if(debug.best_max_number_of_gaussians < size)
+	debug.best_max_number_of_gaussians = size;
+      
+    }
+    
+    debug.best_avg_number_of_gaussians /= best_it->features.size();
+    
+  }
+  
+  
   return debug;
 }
 

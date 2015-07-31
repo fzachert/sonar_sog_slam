@@ -4,6 +4,7 @@
 #include <boost/noncopyable.hpp>
 #include <vizkit3d/Vizkit3DPlugin.hpp>
 #include <osg/Geode>
+#include <osg/ShapeDrawable>
 #include <sonar_sog_slam/maps/sog_map.hpp>
 #include "ColoredUncertainty.hpp"
 

@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * particle_feature.cpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file provides a feature as part of an filter-particle
+ * ----------------------------------------------------------------------------
+*/
+
 #include "particle.hpp"
 #include <base/logging.h>
 
@@ -5,7 +14,7 @@
 using namespace sonar_sog_slam;
 
 
-void ParticleFeature::init(Eigen::Vector3d z, Eigen::Matrix3d cov_z, int number_of_gaussians, double K){
+void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, double K){
   
   if(number_of_gaussians < 1)
     return;
@@ -61,7 +70,7 @@ void ParticleFeature::init(Eigen::Vector3d z, Eigen::Matrix3d cov_z, int number_
 
 
 
-Eigen::Vector2d ParticleFeature::measurement_model_visable( base::Vector3d landmark){
+Eigen::Vector2d ParticleFeature::measurement_model_visable( const base::Vector3d &landmark){
   Eigen::Vector2d result;
   
   result(0) = (landmark - p->pos).norm();
@@ -70,7 +79,7 @@ Eigen::Vector2d ParticleFeature::measurement_model_visable( base::Vector3d landm
  return result; 
 }
 
-Eigen::Vector3d ParticleFeature::measurement_model_invisable( base::Vector3d landmark){
+Eigen::Vector3d ParticleFeature::measurement_model_invisable( const base::Vector3d &landmark){
   Eigen::Vector3d result;
   
   result.x() = (landmark - p->pos).norm();
@@ -80,7 +89,7 @@ Eigen::Vector3d ParticleFeature::measurement_model_invisable( base::Vector3d lan
   return result;
 }
 
-Eigen::Matrix<double, 2, 3> ParticleFeature::jacobi_measurement_model_visable( base::Vector3d landmark){
+Eigen::Matrix<double, 2, 3> ParticleFeature::jacobi_measurement_model_visable( const base::Vector3d &landmark){
 
   Eigen::Matrix<double, 2, 3> result;
   double norm_l2z = (landmark - p->pos).norm();
@@ -98,7 +107,7 @@ Eigen::Matrix<double, 2, 3> ParticleFeature::jacobi_measurement_model_visable( b
   return result;
 }
 	    
-Eigen::Matrix<double, 3, 3> ParticleFeature::jacobi_measurement_model_invisable( base::Vector3d landmark){
+Eigen::Matrix<double, 3, 3> ParticleFeature::jacobi_measurement_model_invisable( const base::Vector3d &landmark){
   
   Eigen::Matrix<double, 3, 3> result;
   double norm_l2z = (landmark - p->pos).norm();
@@ -122,7 +131,7 @@ Eigen::Matrix<double, 3, 3> ParticleFeature::jacobi_measurement_model_invisable(
   return result;
 }
 
-bool ParticleFeature::isVisable( base::Vector3d landmark){
+bool ParticleFeature::is_visable( const base::Vector3d &landmark){
   
   double angle_vertical = std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - base::getPitch( p->ori);
   
@@ -161,7 +170,7 @@ bool ParticleFeature::is_in_sensor_range(){
   return visable;
 }
 
-void ParticleFeature::setUnseen(){
+void ParticleFeature::set_unseen(){
   
   seen = false;
 }
@@ -192,7 +201,7 @@ double ParticleFeature::negative_update(){
   }
   
     
-  normalizeWeights();  
+  normalize_weights();  
   
   return ( negative_weight_sum * p->model_config.negative_likelihood  ) 
     + ( ( 1.0 - negative_weight_sum ) * 1.0 );

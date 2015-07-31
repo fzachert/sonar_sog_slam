@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * particle_feature.hpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file provides a feature as part of an filter-particle
+ * ----------------------------------------------------------------------------
+*/
+
 #ifndef _SOGSSLAM_PARTICLEFEATURE_HPP_
 #define _SOGSSLAM_PARTICLEFEATURE_HPP_
 
@@ -13,7 +22,9 @@ namespace sonar_sog_slam
 {
     class Particle;
   
-  
+    /**
+     * A feature, represented as a sum of gaussian filter
+     */
     class ParticleFeature : public SOG<2,3>    
     {
 	public: 
@@ -21,23 +32,33 @@ namespace sonar_sog_slam
 	  
 	    bool seen;	  
 	  
-	    virtual void init(Eigen::Vector3d z, Eigen::Matrix3d cov_z, int number_of_gaussians, double K = 0.4);
+	    virtual void init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, double K = 0.4);
 	  	    
-	    virtual Eigen::Vector2d measurement_model_visable( base::Vector3d landmark);
+	    virtual Eigen::Vector2d measurement_model_visable( const base::Vector3d &landmark);
 	    
-	    virtual Eigen::Vector3d measurement_model_invisable( base::Vector3d landmark);
+	    virtual Eigen::Vector3d measurement_model_invisable( const base::Vector3d &landmark);
 	    
-	    virtual Eigen::Matrix<double, 2, 3> jacobi_measurement_model_visable( base::Vector3d landmark);
+	    virtual Eigen::Matrix<double, 2, 3> jacobi_measurement_model_visable( const base::Vector3d &landmark);
 	    
-	    virtual Eigen::Matrix<double, 3, 3> jacobi_measurement_model_invisable( base::Vector3d landmark);		    
+	    virtual Eigen::Matrix<double, 3, 3> jacobi_measurement_model_invisable( const base::Vector3d &landmark);		    
 	  
-	    virtual bool isVisable( base::Vector3d landmark) ; 
+	    virtual bool is_visable( const base::Vector3d &landmark) ; 
 	    
+	    /**
+	     * Checks, if the feature is in sensor-is_in_sensor_range
+	     */
 	    bool is_in_sensor_range();
 	    
+	    /**
+	     * Negative update of the feature
+	     * Reduceses the weight of all gaussians, which should be seens, but were not seen
+	     */
 	    double negative_update();
 	    
-	    void setUnseen();
+	    /**
+	     * Set all gaussians as unseen
+	     */
+	    void set_unseen();
 	    
 	    
     };

@@ -1,3 +1,12 @@
+/* ----------------------------------------------------------------------------
+ * sog_slam.hpp
+ * written by Fabio Zachert, August 2015
+ * University of Bremen
+ * 
+ * This file implements the sog-slam, using a particle-filter
+ * ----------------------------------------------------------------------------
+*/
+
 #ifndef _SOGSSLAM_SOGSLAM_HPP_
 #define _SOGSSLAM_SOGSLAM_HPP_
 
@@ -67,16 +76,16 @@ namespace sonar_sog_slam
 	  virtual double perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m);  
 	    
 	  
-	  double observeFeatures( const sonar_image_feature_extractor::SonarFeatures &z, double weight);
+	  double observe_features( const sonar_image_feature_extractor::SonarFeatures &z, double weight);
 	  
 	  
 	  void set_depth( const double &depth);
 	  
 	  void set_orientation(  const base::Orientation &ori);
 	  
-	  SOG_Map getMap();
+	  SOG_Map get_map();
 	  
-	  DebugOutput getDebug();
+	  DebugOutput get_debug();
 	  
 	    
     };

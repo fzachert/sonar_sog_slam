@@ -18,14 +18,13 @@ namespace sonar_sog_slam
     struct FilterConfig{
 
       base::Matrix2d speed_covariance;
-      double orientation_drift_variance;
-      base::Matrix3d sigmaZ;      
+      double orientation_drift_variance;    
       
       int number_of_particles;
       int number_of_gaussians;
       double K;
       
-      double new_feature_probability;
+      double new_feature_distance;
       
       double sonar_weight;
       

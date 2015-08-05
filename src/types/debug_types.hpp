@@ -24,6 +24,10 @@ namespace sonar_sog_slam
       double best_avg_number_of_gaussians;
       int best_max_number_of_gaussians;
       
+      double yaw_offset_max;
+      double yaw_offset_avg;
+      
+      double initial_feature_likelihood;
     };
     
 }

@@ -44,8 +44,6 @@ namespace sonar_sog_slam
 	    base::Orientation ori;
 	    
 	    static ModelConfig model_config;
-	    static base::Orientation global_orientation;
-	    static double global_depth;
 	    	    
 	    double main_confidence;	    
 	    

@@ -65,7 +65,7 @@ namespace sonar_sog_slam
 	    }
 	    
 	    normalize_weights();
-	    
+	    update_average_state();
 	  }
 	  
 /**
@@ -211,7 +211,9 @@ namespace sonar_sog_slam
 		temp.clear(); 
 		double sum_weights = 0;
 		base::Vector3d sum_means = base::Vector3d::Zero();
-		base::Matrix3d sum_cov = base::Matrix3d::Zero();    
+		base::Matrix3d sum_cov = base::Matrix3d::Zero();
+		unsigned int max_counter = 0;
+		bool is_visable = false;
 		
 		for(std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end();){
 		  
@@ -222,6 +224,10 @@ namespace sonar_sog_slam
 		    
 		    sum_weights += it->weight;	
 		    sum_means += (it->weight * it->state);	
+		    max_counter = std::max( max_counter, it->counter);
+		    
+		    if( it->visable)
+		      is_visable = true;
 		    
 		    it = gaussians.erase(it);
 		    
@@ -234,7 +240,9 @@ namespace sonar_sog_slam
 		EKF new_EKF;
 		new_EKF.weight = sum_weights;
 		new_EKF.state = sum_means / sum_weights;
-		
+		new_EKF.counter = max_counter;
+		new_EKF.visable = is_visable;
+
 		for(std::list<EKF>::iterator it = temp.begin(); it != temp.end(); it++){
 		  
 		  sum_cov += it->weight * ( it->cov + ( (new_EKF.state - it->state )*((new_EKF.state - it->state ).transpose())   ) );

@@ -50,6 +50,15 @@ namespace sonar_sog_slam
 	    bool is_in_sensor_range();
 	    
 	    /**
+	     * Simple heuristic, to check if the feature is near to  measurement
+	     * @param meas: Measurement vector
+	     * @param tolerance: Tolerance of the measurement
+	     * @return: true, if the measurement is near to the feature
+	     */
+	    bool heuristic( const base::Vector3d &meas, const double &tolerance);
+	    
+	    
+	    /**
 	     * Negative update of the feature
 	     * Reduceses the weight of all gaussians, which should be seens, but were not seen
 	     */

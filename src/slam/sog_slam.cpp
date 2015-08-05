@@ -40,8 +40,11 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   
   StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), config.speed_covariance);
   StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1, Eigen::DontAlign>::Zero(), Eigen::Matrix< double, 1, 1, Eigen::DontAlign>::Constant(config.orientation_drift_variance) );
-
-  init_particles(config.number_of_particles);
+  
+  initial_feature_likelihood = 0.01;
+  initial_feature_likelihood = calculate_initial_feature_likelihood();
+  
+  init_particles(config.number_of_particles);  
  
   LOG_DEBUG_S << "Initialized sog-slam" << std::endl;
   
@@ -62,6 +65,30 @@ void SOG_Slam::init_particles( unsigned int number_of_particles){
     particles.push_back(p);
     
   } 
+  
+}
+
+double SOG_Slam::calculate_initial_feature_likelihood(){
+
+  base::Vector3d real_landmark( 7.0, 0.0, -2);
+  base::Vector3d noisy_landmark( 7.0 + config.new_feature_distance, 0.0, -2);
+  base::Vector3d noisy_landmark2( 7.0, config.new_feature_distance, -2);
+  Particle p;
+  ParticleFeature pf;
+  
+  p.pos = base::Vector3d::Zero();
+  p.ori = base::Orientation::Identity();
+  Particle::model_config = model_config;
+  
+  pf.p = &p;
+  
+  base::Vector3d real_measurement = pf.measurement_model_invisable(real_landmark); 
+  base::Vector3d noisy_measurement = pf.measurement_model_invisable(noisy_landmark);
+  base::Vector3d noisy_measurement2 = pf.measurement_model_invisable(noisy_landmark2);
+  pf.init(real_measurement, model_config.sigmaZ, config.number_of_gaussians, config.K);
+  
+  return (pf.calc_likelihood( noisy_measurement, model_config.sigmaZ) 
+    + pf.calc_likelihood( noisy_measurement2, model_config.sigmaZ)) * 0.5;
   
 }
 
@@ -96,10 +123,10 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
     base::Vector3d noisy_vel = u.velocity;
     noisy_vel.block<2,1>(0,0) += (*StaticSpeedNoise)() * dt;
     X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
-    X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * X.global_orientation) ;
+    X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
     
     X.pos += X.ori * (noisy_vel * dt);
-    X.pos.z() = Particle::global_depth;
+    X.pos.z() = global_depth;
     X.velocity = noisy_vel;
     
   }
@@ -118,8 +145,8 @@ double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::So
     << " and " << X.features.size() << " features.";
   
   X.set_unseen();
-  X.pos.z() = Particle::global_depth;
-  X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * X.global_orientation) ;
+  X.pos.z() = global_depth;
+  X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
   
   return perception_positive( X, z) * perception_negative( X, z);
   
@@ -138,7 +165,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     base::Vector3d meas( it_z->range, it_z->angle_h, model_config.sonar_vertical_angle); 
         
     bool new_feature = true;
-    double max_prob = config.new_feature_probability;
+    double max_prob = initial_feature_likelihood;
     std::list<ParticleFeature>::iterator max_map_feature = X.features.end();
     
         
@@ -147,12 +174,18 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
        if(it_p->seen)
 	 continue;
       
-       double prob_temp = it_p->calc_likelihood( meas, config.sigmaZ);
-      
-       if(prob_temp > max_prob){
-	 max_prob = prob;
-	 max_map_feature = it_p;	 
-       }       
+       if( it_p->heuristic(meas, model_config.heuristic_tolerance) ){
+       
+	double prob_temp = it_p->calc_likelihood( meas, model_config.sigmaZ);
+	
+	if(prob_temp > max_prob){
+	  max_prob = prob;
+	  max_map_feature = it_p;	 
+	}
+	
+       }else{
+	 continue;
+       }
        
     }
     
@@ -171,10 +204,10 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     }else{
       
       
-      max_map_feature->measurement( meas, config.sigmaZ);
+      max_map_feature->measurement( meas, model_config.sigmaZ);
       
       max_map_feature->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold );
-      max_prob = max_map_feature->calc_likelihood( meas, config.sigmaZ);
+      max_prob = max_map_feature->calc_likelihood( meas, model_config.sigmaZ);
       
       max_map_feature->seen = true;
     }
@@ -225,13 +258,13 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
 
 void SOG_Slam::set_depth( const double &depth){
   
-  Particle::global_depth = depth;
+  global_depth = depth;
   
 }
 	  
 void SOG_Slam::set_orientation(  const base::Orientation &ori){
   
-  Particle::global_orientation = ori;
+  global_orientation = ori;
   
 }
 
@@ -262,6 +295,11 @@ DebugOutput SOG_Slam::get_debug(){
   double sum_features = 0.0;
   double best_confidence = 0.0;
   std::list<Particle>::iterator best_it;
+  double yaw_offset_sum = 0.0;
+  double abs_offset;
+  
+  debug.yaw_offset_max = 0.0;
+  
   
   for(std::list<Particle>::iterator it = particles.begin(); it != particles.end(); it++){
     
@@ -270,10 +308,18 @@ DebugOutput SOG_Slam::get_debug(){
       best_it = it;
     }
     
+    
+    abs_offset = std::fabs(it->yaw_offset);
+    if( abs_offset > debug.yaw_offset_max){
+      debug.yaw_offset_max = abs_offset;
+    }
+    
+    yaw_offset_sum += abs_offset;
     sum_features += it->features.size();
     
   }
   
+  debug.yaw_offset_avg = yaw_offset_sum / particles.size();  
   
   if(best_confidence > 0.0){
     debug.avg_number_of_features = sum_features / (double)particles.size();
@@ -297,6 +343,8 @@ DebugOutput SOG_Slam::get_debug(){
     
   }
   
+  
+  debug.initial_feature_likelihood = initial_feature_likelihood;
   
   return debug;
 }

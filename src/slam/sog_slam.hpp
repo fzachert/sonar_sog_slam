@@ -30,21 +30,47 @@ namespace sonar_sog_slam
     {
 	private: 
 	  
+	  //random-number for the dynamic-model
+	  boost::minstd_rand *seed;
 	  machine_learning::MultiNormalRandom<2> *StaticSpeedNoise;
 	  machine_learning::MultiNormalRandom<1> *StaticOrientationNoise;
+	  
 	  base::Time last_velocity_sample;
 	  
 	  
 	  FilterConfig config;
 	  ModelConfig model_config;
 	  DebugOutput debug;
+	  double initial_feature_likelihood;
 	  
-	  boost::minstd_rand *seed;
+	  double global_depth;
+	  base::Orientation global_orientation;
 	  
+	  /**
+	   * Initialize the particles with a given number
+	   */
 	  void init_particles( unsigned int number_of_particles);
 	  
+	  double calculate_initial_feature_likelihood(); 
+	  
+	  
+	  /**
+	   * Positive perception
+	   * Apply measurement to the feature based on the maximum likelihood
+	   *  or create new features
+	   * @param X: Particle
+	   * @param z: Sonar-measurement
+	   * @return: Likelihood of the measurement
+	   */
 	  double perception_positive(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z);
 	  
+	  /**
+	   * Negative perception
+	   * Correct the unseen features in the sensor-range and remove unlikely features
+	   * @param X: Particle
+	   * @param z: Sonar-measurement
+	   * @return: Likelihood of not seing features
+	   */
 	  double perception_negative(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z);
 	  
 	  
@@ -53,14 +79,21 @@ namespace sonar_sog_slam
 	  SOG_Slam();
 	  ~SOG_Slam();
 	  
+	  /**
+	   * Initialize the slam with a given config
+	   */
 	  void init(FilterConfig config, ModelConfig mconfig);
 	  
+	  /**
+	   * Implemented virtual functions of the particle-filter-template
+	   */
 	  virtual base::Position position(const Particle& X) const { return X.pos; }
 	  virtual base::Vector3d velocity(const Particle& X) const { return X.velocity; }
 	  virtual base::samples::RigidBodyState orientation(const Particle& X) const {
 	    base::samples::RigidBodyState rbs;
 	    rbs.time = X.time;
 	    rbs.orientation = X.ori;
+	    rbs.position.z() = global_depth;
 	    return rbs;
 	  }
 	  virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& motion) { return motion.time; }
@@ -68,23 +101,37 @@ namespace sonar_sog_slam
 	  virtual void setValid(Particle &X, bool flag){ }
 	  
 	  virtual double confidence( const Particle& X) const {return X.main_confidence; }
-	  virtual void setConfidence(Particle& X, double weight) {X.main_confidence = weight; }
-	  
+	  virtual void setConfidence(Particle& X, double weight) {X.main_confidence = weight; }	  
 	  
 	  virtual void dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m);
 	    
 	  virtual double perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m);  
 	    
 	  
+	  /**
+	   * Observe a feature
+	   * Calls the measurement-function of the particle-filter and triggers the resampling
+	   */
 	  double observe_features( const sonar_image_feature_extractor::SonarFeatures &z, double weight);
 	  
-	  
+	  /**
+	   * Set the epth of all particles
+	   */
 	  void set_depth( const double &depth);
 	  
+	  /**
+	   * Set the orientation of all particles
+	   */
 	  void set_orientation(  const base::Orientation &ori);
 	  
+	  /**
+	   * Get the map-representation of the best particle
+	   */
 	  SOG_Map get_map();
 	  
+	  /**
+	   * Get debug-informations of the slam and particle-filter
+	   */
 	  DebugOutput get_debug();
 	  
 	    

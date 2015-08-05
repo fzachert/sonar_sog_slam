@@ -29,8 +29,11 @@ namespace sonar_sog_slam
       int candidate_threshold;
       double candidate_distance;
       
+      double heuristic_tolerance;
+      
       double reduction_weight_threshold;
       double reduction_distance_threshold;
+      double merge_distance_threshold;
       
       
     };

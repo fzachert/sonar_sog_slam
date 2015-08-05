@@ -28,7 +28,7 @@ bool CandidateFilter::check_candidate( double range, double alpha_h, Particle *p
   
   base::Vector3d pos;
   double plane_range = range * cos( base::getPitch(p->ori) + config.sonar_vertical_angle);
-  double yaw = base::getYaw( p->ori);
+  double yaw = base::getYaw( p->ori) + alpha_h;
   pos.x() = p->pos.x() + ( plane_range * std::cos( yaw) );  
   pos.y() = p->pos.y() + ( plane_range * std::sin( yaw) );
   pos.z() = 0.0;

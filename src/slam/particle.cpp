@@ -13,8 +13,6 @@
 using namespace sonar_sog_slam;
 
 ModelConfig Particle::model_config = ModelConfig();
-base::Orientation Particle::global_orientation = base::Orientation::Identity();
-double Particle::global_depth = 0.0;
 
 SOG_Map Particle::get_map(){
   SOG_Map map;
@@ -60,7 +58,7 @@ void Particle::reduce_features(){
       
       if( it != it_){
       
-	if( (it->average_state - it->average_state).norm() < model_config.reduction_distance_threshold){
+	if( (it->average_state - it_->average_state).norm() < model_config.merge_distance_threshold){
 	
 	  it->merge( *it_);
 	  it_ = features.erase(it_);

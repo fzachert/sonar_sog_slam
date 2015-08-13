@@ -17,6 +17,7 @@ SOG_Slam::SOG_Slam(){
   StaticSpeedNoise = 0;
   StaticOrientationNoise = 0;
   seed = new boost::minstd_rand( static_cast<uint32_t>(time(0)));
+  std::srand (time(NULL));
 }
 
 SOG_Slam::~SOG_Slam(){
@@ -206,7 +207,10 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       
       max_map_feature->measurement( meas, model_config.sigmaZ);
       
-      max_map_feature->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold );
+      if( model_config.reduction_trigger_probability >= 1.0 || double_rand() < model_config.reduction_trigger_probability)
+      {
+	max_map_feature->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold );
+      }
       max_prob = max_map_feature->calc_likelihood( meas, model_config.sigmaZ);
       
       max_map_feature->seen = true;
@@ -217,8 +221,12 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
   }
   
   X.candidate_filter.reduce_candidates();
-  X.reduce_features();
   
+  if(model_config.reduction_trigger_probability >= 1.0 || double_rand() < model_config.reduction_trigger_probability)
+  {
+    X.reduce_features();
+  }
+    
   return prob;
 }
 
@@ -349,7 +357,10 @@ DebugOutput SOG_Slam::get_debug(){
   return debug;
 }
 
-
+double SOG_Slam::double_rand()
+{
+    return (double)std::rand() / RAND_MAX;
+}
 
 
 

@@ -20,6 +20,8 @@
 #include <uw_localization/filters/particle_filter.hpp>
 #include <sonar_image_feature_extractor/DetectorTypes.hpp>
 #include <machine_learning/RandomNumbers.hpp>
+#include <stdlib.h> 
+#include <time.h>
 
 namespace sonar_sog_slam
 {
@@ -72,6 +74,11 @@ namespace sonar_sog_slam
 	   * @return: Likelihood of not seing features
 	   */
 	  double perception_negative(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z);
+	  
+	  /**
+	   * Random number between 0 and 1
+	   */
+	  double double_rand();
 	  
 	  
 	public:

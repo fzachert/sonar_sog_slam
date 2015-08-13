@@ -52,6 +52,9 @@ void Particle::set_unseen(){
 
 void Particle::reduce_features(){
   
+  if(features.size() < 2)
+    return;
+  
   for(std::list<ParticleFeature>::iterator it = features.begin(); it != features.end(); it++){
     
     for(std::list<ParticleFeature>::iterator it_ = features.begin(); it_ != features.end();){

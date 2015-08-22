@@ -29,7 +29,9 @@ namespace sonar_sog_slam
       double sonar_weight;
       
       double effective_sample_size_threshold;
+      int min_observations; //Minimum number of observation before resampling
       bool use_markov;
+      bool estimate_middle;
       
     };
     

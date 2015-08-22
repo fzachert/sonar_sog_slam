@@ -65,7 +65,7 @@ void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_
     
     EKF ekf;
     ekf.init( mean + p->pos + ( p->ori * p->model_config.sonar_pos) , rot * cov * rot.transpose(), 1.0 / (double)number_of_gaussians );
-    ekf.counter = p->model_config.candidate_threshold;
+    ekf.counter = (p->model_config.candidate_threshold * 2.0);
     
     
     gaussians.push_back(ekf);
@@ -204,7 +204,7 @@ double ParticleFeature::negative_update(){
   
   double negative_weight_sum = 0.0;
   
-  for( std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
+  for( std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); ){
     
     if(it->visable){
       negative_weight_sum += it->weight;
@@ -214,14 +214,13 @@ double ParticleFeature::negative_update(){
       if(it->counter == 0){
 	
 	it = gaussians.erase(it);
-	
-	if(it != gaussians.begin())
-	  it--;
+	continue;
 	
       }      
       
     }
     
+    it++;
   }
   
     

@@ -22,6 +22,7 @@
 #include <machine_learning/RandomNumbers.hpp>
 #include <stdlib.h> 
 #include <time.h>
+#include <fenv.h> //Nan-exceptions
 
 namespace sonar_sog_slam
 {
@@ -45,8 +46,13 @@ namespace sonar_sog_slam
 	  DebugOutput debug;
 	  double initial_feature_likelihood;
 	  
+	  int observation_count;
+	  
 	  double global_depth;
 	  base::Orientation global_orientation;
+	  base::Time global_time;
+	  
+	  base::samples::RigidBodyState dead_reackoning_state; 
 	  
 	  /**
 	   * Initialize the particles with a given number
@@ -98,8 +104,8 @@ namespace sonar_sog_slam
 	  virtual base::Vector3d velocity(const Particle& X) const { return X.velocity; }
 	  virtual base::samples::RigidBodyState orientation(const Particle& X) const {
 	    base::samples::RigidBodyState rbs;
-	    rbs.time = X.time;
-	    rbs.orientation = X.ori;
+	    rbs.time = global_time;
+	    rbs.orientation = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation);
 	    rbs.position.z() = global_depth;
 	    return rbs;
 	  }
@@ -113,7 +119,10 @@ namespace sonar_sog_slam
 	  virtual void dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m);
 	    
 	  virtual double perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m);  
-	    
+	  
+	  
+ 	  void update_dead_reackoning( const base::samples::RigidBodyState &velocity); 
+	  base::samples::RigidBodyState estimate_dead_reackoning();
 	  
 	  /**
 	   * Observe a feature
@@ -130,6 +139,11 @@ namespace sonar_sog_slam
 	   * Set the orientation of all particles
 	   */
 	  void set_orientation(  const base::Orientation &ori);
+	  
+	  /**
+	   * Set the global time for all particle-samples
+	   */
+	  void set_time( const base::Time &time);
 	  
 	  /**
 	   * Get the map-representation of the best particle

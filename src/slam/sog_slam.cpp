@@ -14,6 +14,8 @@ using namespace sonar_sog_slam;
 
 SOG_Slam::SOG_Slam(){
   
+  feenableexcept(FE_INVALID | FE_OVERFLOW); //Enable nan-exceptions
+  
   StaticSpeedNoise = 0;
   StaticOrientationNoise = 0;
   seed = new boost::minstd_rand( static_cast<uint32_t>(time(0)));
@@ -44,9 +46,23 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   
   initial_feature_likelihood = 0.01;
   initial_feature_likelihood = calculate_initial_feature_likelihood();
+//  std::cout << "Set initial feature likelihood: " << initial_feature_likelihood << std::endl;
   
-  init_particles(config.number_of_particles);  
+  init_particles(config.number_of_particles);
+  debug.resample_count = 0;
+  debug.avg_observations_before_resampling = 0.0;
+  observation_count = 0;  
  
+  debug.observation_count = 0;
+  debug.max_observation_time = 0.0;
+  debug.avg_observation_time = 0.0;
+  
+  global_depth = 0.0;
+  global_orientation = base::Orientation::Identity();
+  global_time = base::Time::fromSeconds(0.0);
+  
+  dead_reackoning_state.position = base::Vector3d::Zero();
+  
   LOG_DEBUG_S << "Initialized sog-slam" << std::endl;
   
 }
@@ -78,6 +94,7 @@ double SOG_Slam::calculate_initial_feature_likelihood(){
   ParticleFeature pf;
   
   p.pos = base::Vector3d::Zero();
+  p.velocity = base::Vector3d::Zero();
   p.ori = base::Orientation::Identity();
   Particle::model_config = model_config;
   
@@ -88,16 +105,28 @@ double SOG_Slam::calculate_initial_feature_likelihood(){
   base::Vector3d noisy_measurement2 = pf.measurement_model_invisable(noisy_landmark2);
   pf.init(real_measurement, model_config.sigmaZ, config.number_of_gaussians, config.K);
   
-  return (pf.calc_likelihood( noisy_measurement, model_config.sigmaZ) 
-    + pf.calc_likelihood( noisy_measurement2, model_config.sigmaZ)) * 0.5;
+  double likelihood = pf.calc_likelihood( noisy_measurement, model_config.sigmaZ);
+  double likelihood2 = pf.calc_likelihood( noisy_measurement2, model_config.sigmaZ);
+  
+//   std::cout << "Calculate initial feature likelihood: " << std::endl;
+//   std::cout << "Real simulated measurement: " << real_measurement.transpose() << std::endl;
+//   std::cout << "Noisy simulated measurement: " << noisy_measurement.transpose() << std::endl;  
+//   std::cout << "Likelihood1: " << likelihood << std::endl;
+//   std::cout << "Likelihood2: " << likelihood2 << std::endl;
+  
+  return (likelihood + likelihood2) * 0.5;
   
 }
 
 
 double SOG_Slam::observe_features( const sonar_image_feature_extractor::SonarFeatures &z, double weight){
   
+  base::Time start_observation = base::Time::now();
+  
   DummyMap m;
   double neff;
+  
+  debug.observation_count++;
   
   if(config.use_markov){
     neff = observe_markov(z, m, weight);
@@ -106,11 +135,24 @@ double SOG_Slam::observe_features( const sonar_image_feature_extractor::SonarFea
   }
   
   debug.effective_sample_size = neff;
+  observation_count++;
   
-  if( neff < config.effective_sample_size_threshold)
+  if( neff < config.effective_sample_size_threshold && observation_count >= config.min_observations)
   {
     resample();
+    debug.resample_count++;
+    debug.avg_observations_before_resampling += ( 1.0 / (double)debug.resample_count)
+      * ( ((double)observation_count) - debug.avg_observations_before_resampling );
+    observation_count = 0;  
   }
+  
+  double observation_time = base::Time::now().toSeconds() - start_observation.toSeconds();
+ 
+  if(observation_time > debug.max_observation_time)
+    debug.max_observation_time = observation_time;
+  
+  debug.avg_observation_time += (1.0 / (double)debug.observation_count)
+    * ( ((double)observation_time) - debug.avg_observation_time );
   
   return neff;
 }
@@ -137,7 +179,24 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
 }
 
 
+void SOG_Slam::update_dead_reackoning( const base::samples::RigidBodyState &velocity){
+  
+  if(!dead_reackoning_state.time.isNull()){
+    double dt = velocity.time.toSeconds() - dead_reackoning_state.time.toSeconds();
+    dead_reackoning_state.position += global_orientation * (velocity.velocity *dt);
+    dead_reackoning_state.position.z() = global_depth;
+    dead_reackoning_state.velocity = velocity.velocity;
+    dead_reackoning_state.orientation = global_orientation;
+    
+  }
+  
+  dead_reackoning_state.time = velocity.time;
+  
+}
 
+base::samples::RigidBodyState SOG_Slam::estimate_dead_reackoning(){
+  return dead_reackoning_state;
+}
 
 
 double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m){
@@ -235,7 +294,7 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
   
   LOG_DEBUG_S << "Negative update with " << X.features.size() << " features.";
   
-  for( std::list<ParticleFeature>::iterator it = X.features.begin(); it != X.features.end(); it++){
+  for( std::list<ParticleFeature>::iterator it = X.features.begin(); it != X.features.end();){
     
     LOG_DEBUG_S << "Check feature";
     
@@ -251,13 +310,13 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
 	it = X.features.erase(it);
 	LOG_DEBUG_S << "Erase Feature";
 	
-	if(it != X.features.begin())
-	  it--;
+	continue;
 	
       }
       
     }    
     
+    it++;
   }
   
   
@@ -274,6 +333,10 @@ void SOG_Slam::set_orientation(  const base::Orientation &ori){
   
   global_orientation = ori;
   
+}
+
+void SOG_Slam::set_time( const base::Time &time){
+  global_time = time;
 }
 
 
@@ -347,10 +410,12 @@ DebugOutput SOG_Slam::get_debug(){
       
     }
     
-    debug.best_avg_number_of_gaussians /= best_it->features.size();
+    if(best_it->features.size() > 0)
+      debug.best_avg_number_of_gaussians /= best_it->features.size();
+    else
+      debug.best_avg_number_of_gaussians = 0.0;
     
-  }
-  
+  }  
   
   debug.initial_feature_likelihood = initial_feature_likelihood;
   

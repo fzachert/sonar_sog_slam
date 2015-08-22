@@ -18,11 +18,17 @@ namespace sonar_sog_slam
     struct DebugOutput{
 
       double effective_sample_size;
+      int resample_count;
+      double avg_observations_before_resampling;
       double avg_number_of_features;
       
       int best_number_of_features;
       double best_avg_number_of_gaussians;
       int best_max_number_of_gaussians;
+      
+      int observation_count;
+      double max_observation_time;
+      double avg_observation_time;
       
       double yaw_offset_max;
       double yaw_offset_avg;

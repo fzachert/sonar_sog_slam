@@ -81,9 +81,18 @@ namespace sonar_sog_slam
 		
 	      }
 	      
-	      for( std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
-		
-		it->weight = it->weight/sum;   
+	      if(sum > 0){
+		for( std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
+		  
+		  it->weight = it->weight/sum;   
+		  
+		}
+	      }else{
+		 for( std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
+		  
+		  it->weight = 1.0 / (double)gaussians.size();   
+		  
+		}
 		
 	      }
 	      
@@ -95,6 +104,11 @@ namespace sonar_sog_slam
 */ 
 	  
 	    void update_average_state(){
+	      
+	      if(gaussians.size() == 1){
+		average_state = gaussians.begin()->state;
+		return;
+	      }
 	      
 	      average_state = base::Vector3d::Zero();
 	      
@@ -195,8 +209,8 @@ namespace sonar_sog_slam
 	      
 	      while(gaussians.size() > 0){
 	      
-		EKF max_EKF;
-		double max_weight = 0.0;
+		EKF max_EKF = gaussians.front();
+		double max_weight = gaussians.begin()->weight;
 		
 		for(std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
 		  

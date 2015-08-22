@@ -20,4 +20,5 @@
   <depend package="auv_avalon/machine_learning" />
   
   <depend package="gui/vizkit3d" />
+  <tags>needs_opt</tags>
 </package>

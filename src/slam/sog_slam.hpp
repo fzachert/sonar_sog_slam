@@ -148,7 +148,7 @@ namespace sonar_sog_slam
 	  /**
 	   * Get the map-representation of the best particle
 	   */
-	  SOG_Map get_map();
+	  SOG_Map get_map( base::Vector3d transformation = base::Vector3d::Zero());
 	  
 	  /**
 	   * Get debug-informations of the slam and particle-filter

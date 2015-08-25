@@ -30,6 +30,7 @@ namespace sonar_sog_slam
 	  base::Matrix3d cov;
           bool visable;
 	  unsigned int counter;
+	  bool changed = false;
       
         public: 
 	    

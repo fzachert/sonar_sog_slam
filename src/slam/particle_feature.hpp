@@ -30,7 +30,7 @@ namespace sonar_sog_slam
 	public: 
 	  Particle *p;	  
 	  
-	    bool seen;	  
+	    bool seen;
 	  
 	    virtual void init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, double K = 0.4);
 	  	    

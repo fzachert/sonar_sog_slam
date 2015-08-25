@@ -27,6 +27,8 @@ namespace sonar_sog_slam
       double max_range; //Maximum range of the sonar
       double horizontal_opening_angle; //Horizontal opening angel of the soar
       
+      base::Orientation velocity_rotation; //Orientation off the velocity-sensor
+      
       //Properties of the candidate-filter
       int candidate_threshold; //A candidate neds to be observed x time, before considered valid
       double candidate_distance; //Distance, at which a measurement belongs to a feature

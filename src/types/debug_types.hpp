@@ -26,6 +26,9 @@ namespace sonar_sog_slam
       double best_avg_number_of_gaussians;
       int best_max_number_of_gaussians;
       
+      double avg_number_of_candidates;
+      int max_number_of_candidates;
+      
       int observation_count;
       double max_observation_time;
       double avg_observation_time;

@@ -38,10 +38,11 @@ namespace sonar_sog_slam
     {
           
     private:  
-      ModelConfig config;
-      std::list<Candidate> candidates;
+      ModelConfig config;      
       
     public:
+      
+      std::list<Candidate> candidates;
       
       /**
        * Initializationfunktion

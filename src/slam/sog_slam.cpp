@@ -168,7 +168,7 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
     X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
     X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
     
-    X.pos += X.ori * (noisy_vel * dt);
+    X.pos += X.ori * (model_config.velocity_rotation * (noisy_vel * dt));
     X.pos.z() = global_depth;
     X.velocity = noisy_vel;
     
@@ -183,7 +183,7 @@ void SOG_Slam::update_dead_reackoning( const base::samples::RigidBodyState &velo
   
   if(!dead_reackoning_state.time.isNull()){
     double dt = velocity.time.toSeconds() - dead_reackoning_state.time.toSeconds();
-    dead_reackoning_state.position += global_orientation * (velocity.velocity *dt);
+    dead_reackoning_state.position += global_orientation * (model_config.velocity_rotation * (velocity.velocity *dt) );
     dead_reackoning_state.position.z() = global_depth;
     dead_reackoning_state.velocity = velocity.velocity;
     dead_reackoning_state.orientation = global_orientation;
@@ -269,6 +269,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       if( model_config.reduction_trigger_probability >= 1.0 || double_rand() < model_config.reduction_trigger_probability)
       {
 	max_map_feature->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold );
+
       }
       max_prob = max_map_feature->calc_likelihood( meas, model_config.sigmaZ);
       
@@ -340,7 +341,7 @@ void SOG_Slam::set_time( const base::Time &time){
 }
 
 
-SOG_Map SOG_Slam::get_map(){
+SOG_Map SOG_Slam::get_map(base::Vector3d transformation){
   
   double best_confidence = 0.0;
   std::list<Particle>::iterator best_it;
@@ -355,7 +356,7 @@ SOG_Map SOG_Slam::get_map(){
   }
   
   if( best_confidence > 0.0)
-    return best_it->get_map();
+    return best_it->get_map(transformation);
   else
     return SOG_Map();
   
@@ -371,6 +372,8 @@ DebugOutput SOG_Slam::get_debug(){
   
   debug.yaw_offset_max = 0.0;
   
+  debug.max_number_of_candidates = 0;
+  debug.avg_number_of_candidates = 0.0;
   
   for(std::list<Particle>::iterator it = particles.begin(); it != particles.end(); it++){
     
@@ -385,12 +388,19 @@ DebugOutput SOG_Slam::get_debug(){
       debug.yaw_offset_max = abs_offset;
     }
     
+    if(it->candidate_filter.candidates.size() > debug.max_number_of_candidates)
+      debug.max_number_of_candidates = it->candidate_filter.candidates.size();
+    
+    debug.avg_number_of_candidates += it->candidate_filter.candidates.size();
+    
+    
     yaw_offset_sum += abs_offset;
     sum_features += it->features.size();
     
   }
   
-  debug.yaw_offset_avg = yaw_offset_sum / particles.size();  
+  debug.yaw_offset_avg = yaw_offset_sum / particles.size(); 
+  debug.avg_number_of_candidates /= particles.size();
   
   if(best_confidence > 0.0){
     debug.avg_number_of_features = sum_features / (double)particles.size();

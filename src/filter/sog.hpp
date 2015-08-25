@@ -31,6 +31,9 @@ namespace sonar_sog_slam
 	    
 	  base::Vector3d average_state;
 	  
+	  bool changed;
+	  bool reduced;
+	  
 	protected:
 	  
           
@@ -179,6 +182,8 @@ namespace sonar_sog_slam
 	      
 	      update_weights(z, sigmaZ);
 	      
+	      changed = true;
+	      reduced = false;
 	    }
 
 	    /**
@@ -269,6 +274,8 @@ namespace sonar_sog_slam
 	      
 	      gaussians = new_gaussians;
 	      
+	      reduced = true;
+	      changed = true;
 	    }
 
 

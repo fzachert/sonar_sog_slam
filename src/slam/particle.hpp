@@ -50,7 +50,7 @@ namespace sonar_sog_slam
 	    /**
 	     * Returns the sog-map-representation
 	     */
-	    SOG_Map get_map();
+	    SOG_Map get_map( base::Vector3d transformation = base::Vector3d::Zero());
 	    
 	    /**
 	     * Set all features as unseen

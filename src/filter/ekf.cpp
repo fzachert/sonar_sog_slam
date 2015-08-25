@@ -20,4 +20,5 @@ void EKF::init(const base::Vector3d &mean, const base::Matrix3d &cov, double wei
   this->cov = cov;
   this->weight = weight;
   
+  changed = false;
 }

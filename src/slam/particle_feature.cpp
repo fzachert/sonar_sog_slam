@@ -24,6 +24,8 @@ void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_
     return;
   
   seen = true;
+  changed = true;
+  reduced = true;
   
   double min_pitch_angle = base::getPitch(p->ori) 
       + p->model_config.sonar_vertical_angle + p->model_config.vertical_opening_angle;
@@ -65,7 +67,7 @@ void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_
     
     EKF ekf;
     ekf.init( mean + p->pos + ( p->ori * p->model_config.sonar_pos) , rot * cov * rot.transpose(), 1.0 / (double)number_of_gaussians );
-    ekf.counter = (p->model_config.candidate_threshold * 2.0);
+    ekf.counter = (p->model_config.candidate_threshold);
     
     
     gaussians.push_back(ekf);

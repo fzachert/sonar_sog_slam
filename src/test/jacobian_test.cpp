@@ -31,7 +31,7 @@ bool check_jacobian_visable(base::Vector3d state){
   mc.vertical_opening_angle = 0.3;
   mc.max_range = 16;
   mc.horizontal_opening_angle = 1.5;
-  Particle::model_config = mc;
+  ParticleFeature::model_config = mc;
   
   base::Vector3d state_temp = state;
   

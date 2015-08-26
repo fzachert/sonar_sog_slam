@@ -15,6 +15,7 @@
 #include <base/Pose.hpp>
 #include "../filter/sog.hpp"
 #include "../types/slam_particle.hpp"
+#include "../types/model_config.hpp"
 #include "../maps/sog_map.hpp"
 #include "particle.hpp"
 
@@ -28,11 +29,14 @@ namespace sonar_sog_slam
     class ParticleFeature : public SOG<2,3>    
     {
 	public: 
+	  
+	  static ModelConfig model_config;
+	  
 	  Particle *p;	  
 	  
 	    bool seen;
 	  
-	    virtual void init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, double K = 0.4);
+	    virtual void init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, int initial_counter, double K = 0.4);
 	  	    
 	    virtual Eigen::Vector2d measurement_model_visable( const base::Vector3d &landmark);
 	    

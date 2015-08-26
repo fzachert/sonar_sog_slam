@@ -299,7 +299,7 @@ namespace sonar_sog_slam
 	     * @param number_of_gaussians: Number of initial gaussians
 	     * @param K: factor k describes the gaussian-variance ith respect to the distance
 	     */
-	    virtual void init(const Eigen::Matrix<double, MODEL_DIM2, 1> &z, const Eigen::Matrix<double, MODEL_DIM2, MODEL_DIM2> &cov_z, int number_of_gaussians, double K = 0.4) = 0;
+	    virtual void init(const Eigen::Matrix<double, MODEL_DIM2, 1> &z, const Eigen::Matrix<double, MODEL_DIM2, MODEL_DIM2> &cov_z, int number_of_gaussians, int initial_counter, double K = 0.4) = 0;
 	    
 	    /**
 	    * Measurement-model if the state is visable. NEEDS to be implemented

@@ -7,14 +7,16 @@
  * ----------------------------------------------------------------------------
 */
 
-#include "particle.hpp"
+#include "particle_feature.hpp"
+#include "../types/model_config.hpp"
 #include <base/logging.h>
 
 
 using namespace sonar_sog_slam;
 
+ModelConfig ParticleFeature::model_config = ModelConfig();
 
-void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, double K){
+void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_z, int number_of_gaussians, int initial_counter, double K){
   
   LOG_DEBUG_S << "Init feature with z=" << z.transpose() << " and " << number_of_gaussians << " gaussians";
   LOG_DEBUG_S << "p.pos=" << p->pos.transpose() << " p.ori= " << p->ori.w() << " " << p->ori.x() << " " << p->ori.y() << " " << p->ori.z();
@@ -28,8 +30,8 @@ void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_
   reduced = true;
   
   double min_pitch_angle = base::getPitch(p->ori) 
-      + p->model_config.sonar_vertical_angle + p->model_config.vertical_opening_angle;
-  double angular_range = p->model_config.sonar_vertical_angle * 2.0;
+      + model_config.sonar_vertical_angle + model_config.vertical_opening_angle;
+  double angular_range = model_config.sonar_vertical_angle * 2.0;
   double angle_step = angular_range / ( (double) number_of_gaussians);
   double range = z.x();
   double angle = z.y() + base::getYaw(p->ori);
@@ -66,8 +68,8 @@ void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_
       + ( (screw_v * screw_v) * ((1-c)/(s*s))  ); 
     
     EKF ekf;
-    ekf.init( mean + p->pos + ( p->ori * p->model_config.sonar_pos) , rot * cov * rot.transpose(), 1.0 / (double)number_of_gaussians );
-    ekf.counter = (p->model_config.candidate_threshold);
+    ekf.init( mean + p->pos + ( p->ori * model_config.sonar_pos) , rot * cov * rot.transpose(), 1.0 / (double)number_of_gaussians );
+    ekf.counter = (initial_counter);
     
     
     gaussians.push_back(ekf);
@@ -93,7 +95,7 @@ Eigen::Vector3d ParticleFeature::measurement_model_invisable( const base::Vector
   
   result.x() = (landmark - p->pos).norm();
   result.y() = std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori);
-  result.z() = std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - ( base::getPitch( p->ori) + p->model_config.sonar_vertical_angle);
+  result.z() = std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - ( base::getPitch( p->ori) + model_config.sonar_vertical_angle);
   
   return result;
 }
@@ -144,7 +146,7 @@ bool ParticleFeature::is_visable( const base::Vector3d &landmark){
   
   double angle_vertical = std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - base::getPitch( p->ori);
   
-  if( angle_vertical < p->model_config.sonar_vertical_angle + p->model_config.vertical_opening_angle && angle_vertical > p->model_config.sonar_vertical_angle - p->model_config.vertical_opening_angle)
+  if( angle_vertical < model_config.sonar_vertical_angle + model_config.vertical_opening_angle && angle_vertical > model_config.sonar_vertical_angle - model_config.vertical_opening_angle)
     return true;
   
   return false;
@@ -153,7 +155,7 @@ bool ParticleFeature::is_visable( const base::Vector3d &landmark){
 
 bool ParticleFeature::is_in_sensor_range(){
   
-  base::Vector3d sensor_pos = p->pos + p->model_config.sonar_pos;
+  base::Vector3d sensor_pos = p->pos + model_config.sonar_pos;
   bool visable = false;
   
   
@@ -163,10 +165,10 @@ bool ParticleFeature::is_in_sensor_range(){
     double angle_vertical = std::atan2( it->state.y() - sensor_pos.y(), it->state.x() - sensor_pos.x()) - base::getYaw( p->ori );
     double angle_horizontal = std::asin( (it->state.z() - sensor_pos.z()) / range) - base::getPitch( p->ori );
     
-    if( range < p->model_config.max_range 
-      && angle_vertical < p->model_config.sonar_vertical_angle + p->model_config.vertical_opening_angle
-      && angle_vertical > p->model_config.sonar_vertical_angle - p->model_config.vertical_opening_angle
-      && std::fabs( angle_horizontal ) < p->model_config.horizontal_opening_angle ){
+    if( range < model_config.max_range 
+      && angle_vertical < model_config.sonar_vertical_angle + model_config.vertical_opening_angle
+      && angle_vertical > model_config.sonar_vertical_angle - model_config.vertical_opening_angle
+      && std::fabs( angle_horizontal ) < model_config.horizontal_opening_angle ){
       
       visable = true;
       it->visable = true;
@@ -182,7 +184,7 @@ bool ParticleFeature::is_in_sensor_range(){
 bool ParticleFeature::heuristic( const base::Vector3d &meas, const double &tolerance){
   
   base::Vector3d pos;
-  double plane_range = meas.x() * cos( base::getPitch(p->ori) + p->model_config.sonar_vertical_angle);
+  double plane_range = meas.x() * cos( base::getPitch(p->ori) + model_config.sonar_vertical_angle);
   double yaw = base::getYaw( p->ori) + meas.y();
   pos.x() = p->pos.x() + ( plane_range * std::cos( yaw) );  
   pos.y() = p->pos.y() + ( plane_range * std::sin( yaw) );
@@ -211,7 +213,7 @@ double ParticleFeature::negative_update(){
     if(it->visable){
       negative_weight_sum += it->weight;
       it->counter--;
-      it->weight = it->weight * p->model_config.negative_likelihood;
+      it->weight = it->weight * model_config.negative_likelihood;
       
       if(it->counter == 0){
 	
@@ -228,7 +230,7 @@ double ParticleFeature::negative_update(){
     
   normalize_weights();  
   
-  return ( negative_weight_sum * p->model_config.negative_likelihood  ) 
+  return ( negative_weight_sum * model_config.negative_likelihood  ) 
     + ( ( 1.0 - negative_weight_sum ) * 1.0 );
 }
 

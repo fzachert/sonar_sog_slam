@@ -36,13 +36,13 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   
   this->config = config;
   this->model_config = mconfig;
-  Particle::model_config = mconfig;
+  ParticleFeature::model_config = mconfig;
   
   delete StaticSpeedNoise;
   delete StaticOrientationNoise;
   
-  StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), config.speed_covariance);
-  StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1, Eigen::DontAlign>::Zero(), Eigen::Matrix< double, 1, 1, Eigen::DontAlign>::Constant(config.orientation_drift_variance) );
+  StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), model_config.speed_covariance);
+  StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1, Eigen::DontAlign>::Zero(), Eigen::Matrix< double, 1, 1, Eigen::DontAlign>::Constant(model_config.orientation_drift_variance) );
   
   initial_feature_likelihood = 0.01;
   initial_feature_likelihood = calculate_initial_feature_likelihood();
@@ -77,7 +77,7 @@ void SOG_Slam::init_particles( unsigned int number_of_particles){
     p.pos = base::Vector3d::Zero(); 
     p.yaw_offset = 0.0;
     p.main_confidence = 1.0 / (double)number_of_particles;
-    p.candidate_filter.init( model_config);
+    p.candidate_filter.init( config, model_config);
     
     particles.push_back(p);
     
@@ -96,14 +96,14 @@ double SOG_Slam::calculate_initial_feature_likelihood(){
   p.pos = base::Vector3d::Zero();
   p.velocity = base::Vector3d::Zero();
   p.ori = base::Orientation::Identity();
-  Particle::model_config = model_config;
+  ParticleFeature::model_config = model_config;
   
   pf.p = &p;
   
   base::Vector3d real_measurement = pf.measurement_model_invisable(real_landmark); 
   base::Vector3d noisy_measurement = pf.measurement_model_invisable(noisy_landmark);
   base::Vector3d noisy_measurement2 = pf.measurement_model_invisable(noisy_landmark2);
-  pf.init(real_measurement, model_config.sigmaZ, config.number_of_gaussians, config.K);
+  pf.init(real_measurement, model_config.sigmaZ, config.number_of_gaussians, config.candidate_threshold, config.K);
   
   double likelihood = pf.calc_likelihood( noisy_measurement, model_config.sigmaZ);
   double likelihood2 = pf.calc_likelihood( noisy_measurement2, model_config.sigmaZ);
@@ -234,7 +234,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
        if(it_p->seen)
 	 continue;
       
-       if( it_p->heuristic(meas, model_config.heuristic_tolerance) ){
+       if( it_p->heuristic(meas, config.heuristic_tolerance) ){
        
 	double prob_temp = it_p->calc_likelihood( meas, model_config.sigmaZ);
 	
@@ -255,7 +255,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       
 	ParticleFeature pf;
 	pf.p = &X;
-	pf.init( meas, model_config.sigmaZ, config.number_of_gaussians, config.K);
+	pf.init( meas, model_config.sigmaZ, config.number_of_gaussians, config.candidate_threshold, config.K);
 	
 	X.features.push_back(pf);
 	
@@ -266,9 +266,9 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
       
       max_map_feature->measurement( meas, model_config.sigmaZ);
       
-      if( model_config.reduction_trigger_probability >= 1.0 || double_rand() < model_config.reduction_trigger_probability)
+      if( config.reduction_trigger_probability >= 1.0 || double_rand() < config.reduction_trigger_probability)
       {
-	max_map_feature->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold );
+	max_map_feature->reduce_gaussians( config.reduction_weight_threshold, config.reduction_distance_threshold );
 
       }
       max_prob = max_map_feature->calc_likelihood( meas, model_config.sigmaZ);
@@ -282,9 +282,9 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
   
   X.candidate_filter.reduce_candidates();
   
-  if(model_config.reduction_trigger_probability >= 1.0 || double_rand() < model_config.reduction_trigger_probability)
+  if(config.reduction_trigger_probability >= 1.0 || double_rand() < config.reduction_trigger_probability)
   {
-    X.reduce_features();
+    X.reduce_features( config.merge_distance_threshold);
   }
     
   return prob;
@@ -304,7 +304,7 @@ double SOG_Slam::perception_negative(Particle &X, const sonar_image_feature_extr
       LOG_DEBUG_S << "Negative measurement";
       
       prob *= it->negative_update();
-      it->reduce_gaussians( model_config.reduction_weight_threshold, model_config.reduction_distance_threshold);
+      it->reduce_gaussians( config.reduction_weight_threshold, config.reduction_distance_threshold);
       
       if( it->gaussians.size() == 0){
 	

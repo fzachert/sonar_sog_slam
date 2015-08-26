@@ -9,5 +9,5 @@ rock_library(sonar_sog_slam
 
 rock_executable(jacobian_test
     SOURCES test/jacobian_test.cpp
-    DEPS_PKGCONFIG sonar_sog_slam base-lib
+    DEPS_PKGCONFIG sonar_sog_slam base-lib base-types
 )  

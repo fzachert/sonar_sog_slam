@@ -42,8 +42,6 @@ namespace sonar_sog_slam
 	    base::Vector3d velocity;
 	    double yaw_offset;
 	    base::Orientation ori;
-	    
-	    static ModelConfig model_config;
 	    	    
 	    double main_confidence;	    
 	    
@@ -62,7 +60,7 @@ namespace sonar_sog_slam
 	     * If a feature was not seen in a while it will be removed
 	     * If features a close to each other, they will be merged
 	     */
-	    void reduce_features();
+	    void reduce_features(double merge_distance_threshold);
 	    
 	    
     };

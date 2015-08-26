@@ -12,8 +12,6 @@
 
 using namespace sonar_sog_slam;
 
-ModelConfig Particle::model_config = ModelConfig();
-
 SOG_Map Particle::get_map( base::Vector3d transformation){
   SOG_Map map;
   map.time = this->time;
@@ -49,7 +47,7 @@ void Particle::set_unseen(){
   
 }
 
-void Particle::reduce_features(){
+void Particle::reduce_features( double merge_distance_threshold){
   
   if(features.size() < 2)
     return;
@@ -64,21 +62,21 @@ void Particle::reduce_features(){
 	
 	feature_distance = (it->average_state - it_->average_state).norm();
 	
-	if( feature_distance < model_config.merge_distance_threshold){
+	if( feature_distance < merge_distance_threshold){
 	
 	  it->merge( *it_);
 	  it->reduced = false;
 	  it_ = features.erase(it_);
 	  continue;
 	}
-	else if( feature_distance < model_config.merge_distance_threshold * 2.0){
+	else if( feature_distance < merge_distance_threshold * 2.0){
 	  
 	  bool merge = false;
 	  
 	  for(std::list<EKF>::iterator it_ekf = it->gaussians.begin(); it_ekf != it->gaussians.end() && (!merge) ; it_ekf++){
 	    for(std::list<EKF>::iterator it_ekf_ = it_->gaussians.begin(); it_ekf_ != it_->gaussians.end() && (!merge); it_ekf_++){
 	      
-	      if( (it_ekf->state - it_ekf_->state).norm() < model_config.merge_distance_threshold){
+	      if( (it_ekf->state - it_ekf_->state).norm() < merge_distance_threshold){
 		merge = true;
 	      }
 	      

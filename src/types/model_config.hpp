@@ -17,7 +17,10 @@ namespace sonar_sog_slam
 {
     struct ModelConfig{
 
+      //Variance-values
       base::Matrix3d sigmaZ;
+      base::Matrix2d speed_covariance;
+      double orientation_drift_variance;
       double negative_likelihood;
       
       //Properties of the sonar
@@ -29,18 +32,7 @@ namespace sonar_sog_slam
       
       base::Orientation velocity_rotation; //Orientation off the velocity-sensor
       
-      //Properties of the candidate-filter
-      int candidate_threshold; //A candidate neds to be observed x time, before considered valid
-      double candidate_distance; //Distance, at which a measurement belongs to a feature
-      
-      double heuristic_tolerance; //Distance, at which a feature could have a matching correspondece to the messurement
-      
-      //Reuction properties
-      double reduction_weight_threshold; //SOG-Elements with weight below this threshold will be removed
-      double reduction_distance_threshold; //SOG-Elements, which are have a distance to each other below this threshold will be merged
-      double reduction_trigger_probability; //With this probabilty, the SOG-reduction will be triggert
-      
-      double merge_distance_threshold; 
+
       
       
     };

@@ -13,11 +13,11 @@
 
 using namespace sonar_sog_slam;
 
-void CandidateFilter::init(ModelConfig config){
+void CandidateFilter::init(FilterConfig &filter_config, ModelConfig &model_config){
   
   candidates.clear();
-  this->config = config;
-  
+  this->model_config = &model_config;
+  this->filter_config = &filter_config;
   
 }
       
@@ -27,13 +27,13 @@ bool CandidateFilter::check_candidate( double range, double alpha_h, Particle *p
     << " and " << candidates.size() << " candidates"; 
   
   base::Vector3d pos;
-  double plane_range = range * cos( base::getPitch(p->ori) + config.sonar_vertical_angle);
+  double plane_range = range * cos( base::getPitch(p->ori) + model_config->sonar_vertical_angle);
   double yaw = base::getYaw( p->ori) + alpha_h;
   pos.x() = p->pos.x() + ( plane_range * std::cos( yaw) );  
   pos.y() = p->pos.y() + ( plane_range * std::sin( yaw) );
   pos.z() = 0.0;
   
-  double min_dist = config.candidate_distance;
+  double min_dist = filter_config->candidate_distance;
   std::list<Candidate>::iterator min_it = candidates.end();
   
   for(std::list<Candidate>::iterator it = candidates.begin(); it != candidates.end(); it++){
@@ -57,7 +57,7 @@ bool CandidateFilter::check_candidate( double range, double alpha_h, Particle *p
     
     LOG_DEBUG_S << "Found matching candidate";
     
-    if(min_it->confidence >= config.candidate_threshold){
+    if(min_it->confidence >= filter_config->candidate_threshold){
       LOG_DEBUG_S << "Erase matching candidate";
       candidates.erase(min_it);
       return true;

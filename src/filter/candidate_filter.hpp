@@ -15,6 +15,7 @@
 #include <machine_learning/GaussianParameters.hpp>
 #include <list>
 #include "../types/model_config.hpp"
+#include "../types/filter_config.hpp"
 //#include "../slam/particle.hpp"
 
 namespace sonar_sog_slam
@@ -38,7 +39,8 @@ namespace sonar_sog_slam
     {
           
     private:  
-      ModelConfig config;      
+      ModelConfig* model_config;
+      FilterConfig* filter_config;
       
     public:
       
@@ -48,7 +50,7 @@ namespace sonar_sog_slam
        * Initializationfunktion
        * @param config: Configuration of the measurement-model
        */
-      void init(ModelConfig config);
+      void init(FilterConfig &filter_config, ModelConfig &model_config);
       
       /**
        * Checks, if a measurement corresponds with an earlier observed feature

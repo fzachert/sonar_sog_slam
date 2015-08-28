@@ -75,6 +75,7 @@ void SOGMapVisualization::updateMainNode ( osg::Node* node )
       
       osg::Sphere* feature = new osg::Sphere( osg::Vec3( it->pos.x(), it->pos.y(), it->pos.z()), 0.1);
       osg::ShapeDrawable* featureDrawable = new osg::ShapeDrawable(feature);
+      featureDrawable->setColor( featuretype2color( it->descriptor ) );
       
       osg::Geode* featureGeode = new osg::Geode();
       featureGeode->addDrawable( featureDrawable);
@@ -84,6 +85,33 @@ void SOGMapVisualization::updateMainNode ( osg::Node* node )
     }
     
 
+}
+
+
+osg::Vec4 SOGMapVisualization::featuretype2color( int featuretype){
+  
+  osg::Vec4 result;
+  
+  switch(featuretype){
+    case 1:
+      result = osg::Vec4(1.0 , 1.0, 1.0, 1.0);
+      break;
+    case 2:
+      result = osg::Vec4(1.0, 0.5, 0.5, 1.0);
+      break;
+    case 3:
+      result = osg::Vec4(0.0 ,0.0, 1.0, 1.0);
+      break;
+    case 4:
+      result = osg::Vec4(1.0, 0.0, 0.0, 1.0);
+      break;
+    
+    default:
+      result = osg::Vec4(0.0, 0.0, 0.0, 1.0);
+  }
+  
+  return result;
+  
 }
 
 void SOGMapVisualization::updateDataIntern(sonar_sog_slam::SOG_Map const& value)

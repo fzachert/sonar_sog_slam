@@ -30,6 +30,8 @@ namespace vizkit3d
     private:
         sonar_sog_slam::SOG_Map map;
 	std::vector<ColoredUncertainty*> gaussians;
+	
+	osg::Vec4 featuretype2color( int featuretype);
     };
 }
 #endif

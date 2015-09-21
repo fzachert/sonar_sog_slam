@@ -28,11 +28,12 @@ namespace sonar_sog_slam
      */
     class ParticleFeature : public SOG<2,3>    
     {
+      
 	public: 
 	  
-	  static ModelConfig model_config;
+	    static ModelConfig model_config;
 	  
-	  Particle *p;	  
+	    Particle *p;	  
 	  
 	    bool seen;
 	  
@@ -73,6 +74,7 @@ namespace sonar_sog_slam
 	     */
 	    void set_unseen();
 	    
+	    double norm_angle( double angle);
 	    
     };
 

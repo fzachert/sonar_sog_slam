@@ -20,6 +20,7 @@ SOG_Map Particle::get_map( base::Vector3d transformation){
     SOG_Feature sf;    
     Simple_Feature simple_f;
     simple_f.pos = it->average_state + transformation;
+    simple_f.descriptor = 1;
     
     for( std::list<EKF>::iterator it_ekf = it->gaussians.begin(); it_ekf != it->gaussians.end(); it_ekf++){
       Gaussian g;

@@ -22,6 +22,8 @@ namespace sonar_sog_slam
       double K;
       
       double new_feature_distance;
+      double feature_penalty;
+      double feature_penalty_maximum; //Maximum number of features
       
       double sonar_weight;
       
@@ -43,6 +45,26 @@ namespace sonar_sog_slam
       double reduction_trigger_probability; //With this probabilty, the SOG-reduction will be triggert
       
       double merge_distance_threshold;       
+      
+      FilterConfig() 
+      : number_of_particles(100),
+	number_of_gaussians(5),
+	K(0.4),
+	new_feature_distance(1.0),
+	feature_penalty(0.0),
+	feature_penalty_maximum(1.0),
+	sonar_weight(1.0),
+	effective_sample_size_threshold(1.0),
+	min_observations(1),
+	use_markov(true),
+	estimate_middle(true),
+	candidate_threshold(3),
+	candidate_distance(1.0),
+	heuristic_tolerance(5.0),
+	reduction_weight_threshold(0.01),
+	reduction_distance_threshold(0.1),
+	reduction_trigger_probability(1.0),
+	merge_distance_threshold(0.5){}     
       
     };
     

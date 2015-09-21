@@ -85,7 +85,7 @@ Eigen::Vector2d ParticleFeature::measurement_model_visable( const base::Vector3d
   Eigen::Vector2d result;
   
   result(0) = (landmark - p->pos).norm();
-  result(1) = std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori);
+  result(1) = norm_angle( std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori) );
   
  return result; 
 }
@@ -94,8 +94,8 @@ Eigen::Vector3d ParticleFeature::measurement_model_invisable( const base::Vector
   Eigen::Vector3d result;
   
   result.x() = (landmark - p->pos).norm();
-  result.y() = std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori);
-  result.z() = std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - ( base::getPitch( p->ori) + model_config.sonar_vertical_angle);
+  result.y() = norm_angle( std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori) );
+  result.z() = norm_angle( std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - ( base::getPitch( p->ori) + model_config.sonar_vertical_angle) );
   
   return result;
 }
@@ -144,7 +144,7 @@ Eigen::Matrix<double, 3, 3> ParticleFeature::jacobi_measurement_model_invisable(
 
 bool ParticleFeature::is_visable( const base::Vector3d &landmark){
   
-  double angle_vertical = std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - base::getPitch( p->ori);
+  double angle_vertical = norm_angle(std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - base::getPitch( p->ori) );
   
   if( angle_vertical < model_config.sonar_vertical_angle + model_config.vertical_opening_angle && angle_vertical > model_config.sonar_vertical_angle - model_config.vertical_opening_angle)
     return true;
@@ -162,8 +162,8 @@ bool ParticleFeature::is_in_sensor_range(){
   for(std::list<EKF>::iterator it = gaussians.begin(); it != gaussians.end(); it++){
     
     double range = (sensor_pos - it->state).norm();
-    double angle_vertical = std::atan2( it->state.y() - sensor_pos.y(), it->state.x() - sensor_pos.x()) - base::getYaw( p->ori );
-    double angle_horizontal = std::asin( (it->state.z() - sensor_pos.z()) / range) - base::getPitch( p->ori );
+    double angle_vertical = norm_angle(std::atan2( it->state.y() - sensor_pos.y(), it->state.x() - sensor_pos.x()) - base::getYaw( p->ori ) );
+    double angle_horizontal = norm_angle( std::asin( (it->state.z() - sensor_pos.z()) / range) - base::getPitch( p->ori ) );
     
     if( range < model_config.max_range 
       && angle_vertical < model_config.sonar_vertical_angle + model_config.vertical_opening_angle
@@ -234,4 +234,13 @@ double ParticleFeature::negative_update(){
     + ( ( 1.0 - negative_weight_sum ) * 1.0 );
 }
 
-
+double ParticleFeature::norm_angle( double angle){
+  
+  if(angle > M_PI)
+    return angle - M_PI;
+  if(angle < -M_PI)
+    return angle + M_PI;
+  
+  return angle;
+  
+}

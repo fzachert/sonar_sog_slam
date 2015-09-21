@@ -160,18 +160,39 @@ double SOG_Slam::observe_features( const sonar_image_feature_extractor::SonarFea
 
 void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m){
   
+  base::Vector3d vel;
+  
+  if(u.hasValidAngularVelocity()){
+    vel = X.ori * ((model_config.velocity_rotation * u.velocity)  - (u.angular_velocity.cross( model_config.velocity_position) ) );
+  }
+  else{
+    vel = X.ori * (model_config.velocity_rotation * u.velocity);
+  }
+  
   if(!X.time.isNull()){
     
     double dt = u.time.toSeconds() - X.time.toSeconds();
-    base::Vector3d noisy_vel = u.velocity;
-    noisy_vel.block<2,1>(0,0) += (*StaticSpeedNoise)() * dt;
-    X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
-    X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
     
-    X.pos += X.ori * (model_config.velocity_rotation * (noisy_vel * dt));
-    X.pos.z() = global_depth;
-    X.velocity = noisy_vel;
+    if(dt > 0){
+  //    if(dt > model_config.dvl_dropout_threshold)
+  //      dt = model_config.dvl_dropout_threshold;
+      
+
+      X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
+      X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
+      base::Vector3d noisy_vel = vel;
+      noisy_vel.block<2,1>(0,0) += (*StaticSpeedNoise)() * dt;
+      base::Vector3d noisy_acceleration = ( noisy_vel - X.velocity) / dt;      
+      
+      X.pos += noisy_vel * dt + ( 0.5 * noisy_acceleration * std::pow(dt, 2.0)  );
+      X.pos.z() = global_depth;
+      X.velocity = noisy_vel;
+      
+    }
     
+  }else{
+  
+    X.velocity = vel;
   }
   
   X.time = u.time;
@@ -183,13 +204,26 @@ void SOG_Slam::update_dead_reackoning( const base::samples::RigidBodyState &velo
   
   if(!dead_reackoning_state.time.isNull()){
     double dt = velocity.time.toSeconds() - dead_reackoning_state.time.toSeconds();
-    dead_reackoning_state.position += global_orientation * (model_config.velocity_rotation * (velocity.velocity *dt) );
-    dead_reackoning_state.position.z() = global_depth;
-    dead_reackoning_state.velocity = velocity.velocity;
-    dead_reackoning_state.orientation = global_orientation;
     
-  }
+    if(dt > 0){
+    
+//      if(dt > model_config.dvl_dropout_threshold)
+//	dt = model_config.dvl_dropout_threshold;    
+      
+      base::Vector3d vel = global_orientation * (model_config.velocity_rotation * velocity.velocity);
+      base::Vector3d acceleration = (vel - dead_reackoning_state.velocity) / dt;
+      
+      dead_reackoning_state.position += (vel *dt) + ( 0.5 * acceleration * std::pow(dt, 2.0));
+      dead_reackoning_state.position.z() = global_depth;
+      dead_reackoning_state.velocity = vel;
+      dead_reackoning_state.orientation = global_orientation;
+    
+    }
+  }else{
   
+    dead_reackoning_state.velocity = global_orientation * (model_config.velocity_rotation * velocity.velocity);
+  
+  }
   dead_reackoning_state.time = velocity.time;
   
 }
@@ -208,7 +242,9 @@ double SOG_Slam::perception(Particle &X, const sonar_image_feature_extractor::So
   X.pos.z() = global_depth;
   X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
   
-  return perception_positive( X, z) * perception_negative( X, z);
+
+ return perception_positive( X, z) * perception_negative( X, z) 
+  * ( ((double) config.feature_penalty_maximum) - ( X.features.size() * config.feature_penalty) );
   
 }
 

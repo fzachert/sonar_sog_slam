@@ -30,6 +30,9 @@ namespace sonar_sog_slam
       double max_range; //Maximum range of the sonar
       double horizontal_opening_angle; //Horizontal opening angel of the soar
       
+      double dvl_dropout_threshold;
+      
+      base::Vector3d velocity_position; //Position of the velocity-sensor
       base::Orientation velocity_rotation; //Orientation off the velocity-sensor
       
 

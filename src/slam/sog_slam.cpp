@@ -17,6 +17,7 @@ SOG_Slam::SOG_Slam(){
   feenableexcept(FE_INVALID | FE_OVERFLOW); //Enable nan-exceptions
   
   StaticSpeedNoise = 0;
+  StaticDropoutNoise = 0;
   StaticOrientationNoise = 0;
   seed = new boost::minstd_rand( static_cast<uint32_t>(time(0)));
   std::srand (time(NULL));
@@ -25,6 +26,7 @@ SOG_Slam::SOG_Slam(){
 SOG_Slam::~SOG_Slam(){
   
  delete StaticSpeedNoise;
+ delete StaticDropoutNoise;
  delete StaticOrientationNoise; 
   
 }
@@ -39,9 +41,11 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   ParticleFeature::model_config = mconfig;
   
   delete StaticSpeedNoise;
+  delete StaticDropoutNoise;
   delete StaticOrientationNoise;
   
   StaticSpeedNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), model_config.speed_covariance);
+  StaticDropoutNoise = new machine_learning::MultiNormalRandom<2>( *seed, Eigen::Vector2d(0.0, 0.0), model_config.dvl_dropout_covariance);
   StaticOrientationNoise = new machine_learning::MultiNormalRandom<1>( *seed, Eigen::Matrix< double , 1 , 1, Eigen::DontAlign>::Zero(), Eigen::Matrix< double, 1, 1, Eigen::DontAlign>::Constant(model_config.orientation_drift_variance) );
   
   initial_feature_likelihood = 0.01;
@@ -199,6 +203,41 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
   
 }
 
+void SOG_Slam::dynamic(Particle &X, const DvlDropoutSample &u, const DummyMap &m){
+  
+  base::Vector3d vel = base::Vector3d::Zero();
+  
+  if(!X.time.isNull()){
+    
+    double dt = u.time.toSeconds() - X.time.toSeconds();
+    
+    if(dt > 0){
+  //    if(dt > model_config.dvl_dropout_threshold)
+  //      dt = model_config.dvl_dropout_threshold;
+      
+
+      X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
+      X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
+      base::Vector3d noisy_vel = vel;
+      noisy_vel.block<2,1>(0,0) += ((*StaticDropoutNoise)() * dt);
+      base::Vector3d noisy_acceleration = ( noisy_vel - X.velocity) / dt;      
+      
+      X.pos += noisy_vel * dt + ( 0.5 * noisy_acceleration * std::pow(dt, 2.0)  );
+      X.pos.z() = global_depth;
+      X.velocity = noisy_vel;
+      
+    }
+    
+  }else{
+  
+    X.velocity = vel;
+  }
+  
+  X.time = u.time;
+  
+}
+
+
 
 void SOG_Slam::update_dead_reackoning( const base::samples::RigidBodyState &velocity){
   
@@ -230,6 +269,16 @@ void SOG_Slam::update_dead_reackoning( const base::samples::RigidBodyState &velo
 
 base::samples::RigidBodyState SOG_Slam::estimate_dead_reackoning(){
   return dead_reackoning_state;
+}
+
+double SOG_Slam::perception(Particle &X, const base::samples::RigidBodyState &z, DummyMap &m){
+  
+  X.pos.z() = global_depth;
+  X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
+  
+
+ return machine_learning::calc_gaussian_norm<2>(z.position.block<2,1>(0,0), z.cov_position.block<2,2>(0,0), X.pos.block<2,1>(0,0) );
+  
 }
 
 

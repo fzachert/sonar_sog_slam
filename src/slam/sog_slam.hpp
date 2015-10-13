@@ -15,6 +15,7 @@
 #include "../types/filter_config.hpp"
 #include "../types/model_config.hpp"
 #include "../types/debug_types.hpp"
+#include "../types/dvl_dropout.hpp"
 #include "../maps/sog_map.hpp"
 #include "particle.hpp"
 #include <uw_localization/filters/particle_filter.hpp>
@@ -28,14 +29,16 @@ namespace sonar_sog_slam
 {
     class SOG_Slam : public uw_localization::ParticleFilter<Particle>,
 	public uw_localization::Perception<Particle, sonar_image_feature_extractor::SonarFeatures, DummyMap>,
-	public uw_localization::Dynamic<Particle, base::samples::RigidBodyState, DummyMap>  
-    
+	public uw_localization::Perception<Particle, base::samples::RigidBodyState, DummyMap>,  
+	public uw_localization::Dynamic<Particle, base::samples::RigidBodyState, DummyMap>,  
+	public uw_localization::Dynamic<Particle, DvlDropoutSample, DummyMap>
     {
 	private: 
 	  
 	  //random-number for the dynamic-model
 	  boost::minstd_rand *seed;
 	  machine_learning::MultiNormalRandom<2> *StaticSpeedNoise;
+	  machine_learning::MultiNormalRandom<2> *StaticDropoutNoise;
 	  machine_learning::MultiNormalRandom<1> *StaticOrientationNoise;
 	  
 	  base::Time last_velocity_sample;
@@ -110,6 +113,7 @@ namespace sonar_sog_slam
 	    return rbs;
 	  }
 	  virtual const base::Time& getTimestamp(const base::samples::RigidBodyState& motion) { return motion.time; }
+	  virtual const base::Time& getTimestamp(const DvlDropoutSample& motion) { return motion.time; }
 	  virtual bool isValid(const Particle& X) const {return true; }
 	  virtual void setValid(Particle &X, bool flag){ }
 	  
@@ -117,9 +121,10 @@ namespace sonar_sog_slam
 	  virtual void setConfidence(Particle& X, double weight) {X.main_confidence = weight; }	  
 	  
 	  virtual void dynamic(Particle &X, const base::samples::RigidBodyState &u, const DummyMap &m);
-	    
-	  virtual double perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m);  
+	  virtual void dynamic(Particle &X, const DvlDropoutSample &u, const DummyMap &m);
 	  
+	  virtual double perception(Particle &X, const sonar_image_feature_extractor::SonarFeatures &z, DummyMap &m);  
+	  virtual double perception(Particle &X, const base::samples::RigidBodyState &z, DummyMap &m);
 	  
  	  void update_dead_reackoning( const base::samples::RigidBodyState &velocity); 
 	  base::samples::RigidBodyState estimate_dead_reackoning();

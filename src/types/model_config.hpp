@@ -20,6 +20,7 @@ namespace sonar_sog_slam
       //Variance-values
       base::Matrix3d sigmaZ;
       base::Matrix2d speed_covariance;
+      base::Matrix2d dvl_dropout_covariance;
       double orientation_drift_variance;
       double negative_likelihood;
       

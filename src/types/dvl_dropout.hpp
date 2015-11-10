@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------------------------
- * debug_types.hpp
+ * dvl_dropout.hpp
  * written by Fabio Zachert, August 2015
  * University of Bremen
  * 

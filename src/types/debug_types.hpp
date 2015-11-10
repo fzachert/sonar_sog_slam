@@ -26,6 +26,10 @@ namespace sonar_sog_slam
       double best_avg_number_of_gaussians;
       int best_max_number_of_gaussians;
       
+      double best_eigenvalue_variance;
+      double worst_eigenvalue_variance;
+      double avg_eigenvalue_variance;
+      
       double avg_number_of_candidates;
       int max_number_of_candidates;
       
@@ -37,6 +41,8 @@ namespace sonar_sog_slam
       double yaw_offset_avg;
       
       double initial_feature_likelihood;
+      
+      double dropout_count;
     };
     
 }

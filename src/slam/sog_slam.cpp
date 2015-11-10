@@ -9,6 +9,7 @@
 
 #include "sog_slam.hpp"
 #include <base/logging.h>
+#include <Eigen/Dense>
 
 using namespace sonar_sog_slam;
 
@@ -60,6 +61,7 @@ void SOG_Slam::init(FilterConfig config, ModelConfig mconfig){
   debug.observation_count = 0;
   debug.max_observation_time = 0.0;
   debug.avg_observation_time = 0.0;
+  debug.dropout_count = 0;
   
   global_depth = 0.0;
   global_orientation = base::Orientation::Identity();
@@ -178,8 +180,8 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
     double dt = u.time.toSeconds() - X.time.toSeconds();
     
     if(dt > 0){
-  //    if(dt > model_config.dvl_dropout_threshold)
-  //      dt = model_config.dvl_dropout_threshold;
+      if(dt > model_config.dvl_dropout_threshold)
+        dt = model_config.dvl_dropout_threshold;
       
 
       X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
@@ -205,24 +207,25 @@ void SOG_Slam::dynamic(Particle &X, const base::samples::RigidBodyState &u, cons
 
 void SOG_Slam::dynamic(Particle &X, const DvlDropoutSample &u, const DummyMap &m){
   
-  base::Vector3d vel = base::Vector3d::Zero();
+  debug.dropout_count += 1.0 / ((double) config.number_of_particles);
+  
+  base::Vector3d vel = X.velocity;  
   
   if(!X.time.isNull()){
     
     double dt = u.time.toSeconds() - X.time.toSeconds();
     
     if(dt > 0){
-  //    if(dt > model_config.dvl_dropout_threshold)
-  //      dt = model_config.dvl_dropout_threshold;
+      if(dt > model_config.dvl_dropout_threshold)
+        dt = model_config.dvl_dropout_threshold;
       
 
       X.yaw_offset += (*StaticOrientationNoise)().x() * dt;
       X.ori = ( Eigen::AngleAxisd( X.yaw_offset, base::Vector3d::UnitZ()) * global_orientation) ;
       base::Vector3d noisy_vel = vel;
-      noisy_vel.block<2,1>(0,0) += ((*StaticDropoutNoise)() * dt);
-      base::Vector3d noisy_acceleration = ( noisy_vel - X.velocity) / dt;      
+      noisy_vel.block<2,1>(0,0) += ((*StaticDropoutNoise)() * dt);     
       
-      X.pos += noisy_vel * dt + ( 0.5 * noisy_acceleration * std::pow(dt, 2.0)  );
+      X.pos += noisy_vel * dt;
       X.pos.z() = global_depth;
       X.velocity = noisy_vel;
       
@@ -307,7 +310,7 @@ double SOG_Slam::perception_positive(Particle &X, const sonar_image_feature_extr
     if(it_z->range > model_config.max_range)
       continue;    
     
-    base::Vector3d meas( it_z->range, it_z->angle_h, model_config.sonar_vertical_angle); 
+    base::Vector3d meas( it_z->range, it_z->angle_h, 0.0); //model_config.sonar_vertical_angle); 
         
     bool new_feature = true;
     double max_prob = initial_feature_likelihood;
@@ -495,6 +498,10 @@ DebugOutput SOG_Slam::get_debug(){
     debug.best_avg_number_of_gaussians = 0.0;
     int size;
     
+    debug.best_eigenvalue_variance = 99999999999999;
+    debug.worst_eigenvalue_variance = 0.0;
+    debug.avg_eigenvalue_variance = 0.0;
+    
     for(std::list<ParticleFeature>::iterator it_ekf = best_it->features.begin(); it_ekf != best_it->features.end(); it_ekf++){
       
       size = it_ekf->gaussians.size();
@@ -503,12 +510,34 @@ DebugOutput SOG_Slam::get_debug(){
       if(debug.best_max_number_of_gaussians < size)
 	debug.best_max_number_of_gaussians = size;
       
+      base::Matrix3d cov_gauss = base::Matrix3d::Zero();
+      
+      for(std::list<EKF>::iterator it_g = it_ekf->gaussians.begin(); it_g != it_ekf->gaussians.end(); it_g++)
+      {
+	cov_gauss += it_g->weight * (it_g->cov + ((it_ekf->average_state - it_g->state)*(it_ekf->average_state - it_g->state ).transpose() ) );
+      }
+      Eigen::SelfAdjointEigenSolver<base::Matrix3d> eigensolver(cov_gauss);
+      base::Vector3d eigenvalues = eigensolver.eigenvalues();
+      double eigen_variance = eigenvalues.norm();
+      
+      debug.avg_eigenvalue_variance += eigen_variance;
+      
+      if(eigen_variance > debug.worst_eigenvalue_variance)
+	debug.worst_eigenvalue_variance = eigen_variance;
+      
+      if(eigen_variance < debug.best_eigenvalue_variance)
+	debug.best_eigenvalue_variance = eigen_variance;
+      
     }
     
-    if(best_it->features.size() > 0)
+    if(best_it->features.size() > 0){
       debug.best_avg_number_of_gaussians /= best_it->features.size();
-    else
+      debug.avg_eigenvalue_variance /= best_it->features.size();
+    }
+    else{
       debug.best_avg_number_of_gaussians = 0.0;
+      debug.avg_eigenvalue_variance = 0.0;
+    }
     
   }  
   

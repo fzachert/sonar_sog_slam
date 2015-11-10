@@ -35,7 +35,7 @@ namespace sonar_sog_slam
       
       base::Vector3d velocity_position; //Position of the velocity-sensor
       base::Orientation velocity_rotation; //Orientation off the velocity-sensor
-      
+      double max_velocity;
 
       
       

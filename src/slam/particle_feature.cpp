@@ -83,19 +83,21 @@ void ParticleFeature::init(const Eigen::Vector3d &z, const Eigen::Matrix3d &cov_
 
 Eigen::Vector2d ParticleFeature::measurement_model_visable( const base::Vector3d &landmark){
   Eigen::Vector2d result;
+  base::Vector3d pos = p->pos + (p->ori * model_config.sonar_pos);
   
-  result(0) = (landmark - p->pos).norm();
-  result(1) = norm_angle( std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori) );
+  result(0) = (landmark - pos).norm();
+  result(1) = norm_angle( std::atan2( landmark.y() - pos.y(), landmark.x() - pos.x() ) - base::getYaw( p->ori) );
   
  return result; 
 }
 
 Eigen::Vector3d ParticleFeature::measurement_model_invisable( const base::Vector3d &landmark){
   Eigen::Vector3d result;
+  base::Vector3d pos = p->pos + (p->ori * model_config.sonar_pos);
   
-  result.x() = (landmark - p->pos).norm();
-  result.y() = norm_angle( std::atan2( landmark.y() - p->pos.y(), landmark.x() - p->pos.x() ) - base::getYaw( p->ori) );
-  result.z() = norm_angle( std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - ( base::getPitch( p->ori) + model_config.sonar_vertical_angle) );
+  result.x() = (landmark - pos).norm();
+  result.y() = norm_angle( std::atan2( landmark.y() - pos.y(), landmark.x() - pos.x() ) - base::getYaw( p->ori) );
+  result.z() = norm_angle( std::atan2( landmark.z() - pos.z(), (landmark - pos).block<2,1>(0,0).norm() ) - ( base::getPitch( p->ori) + model_config.sonar_vertical_angle) );
   
   return result;
 }
@@ -103,15 +105,17 @@ Eigen::Vector3d ParticleFeature::measurement_model_invisable( const base::Vector
 Eigen::Matrix<double, 2, 3> ParticleFeature::jacobi_measurement_model_visable( const base::Vector3d &landmark){
 
   Eigen::Matrix<double, 2, 3> result;
-  double norm_l2z = (landmark - p->pos).norm();
-  double squared_xy_norm = std::pow( landmark.x() - p->pos.x(), 2.0) + std::pow( landmark.y() - p->pos.y(), 2.0);
+  base::Vector3d pos = p->pos + (p->ori * model_config.sonar_pos);
   
-  result(0,0) = ( landmark.x() - p->pos.x() ) / norm_l2z;
-  result(0,1) = ( landmark.y() - p->pos.y() ) / norm_l2z;
-  result(0,2) = ( landmark.z() - p->pos.z() ) / norm_l2z;
+  double norm_l2z = (landmark - pos).norm();
+  double squared_xy_norm = std::pow( landmark.x() - pos.x(), 2.0) + std::pow( landmark.y() - pos.y(), 2.0);
   
-  result(1,0) = ( -( landmark.y() - p->pos.y()) ) / squared_xy_norm;
-  result(1,1) = ( landmark.x() - p->pos.x() ) / squared_xy_norm;  
+  result(0,0) = ( landmark.x() - pos.x() ) / norm_l2z;
+  result(0,1) = ( landmark.y() - pos.y() ) / norm_l2z;
+  result(0,2) = ( landmark.z() - pos.z() ) / norm_l2z;
+  
+  result(1,0) = ( -( landmark.y() - pos.y()) ) / squared_xy_norm;
+  result(1,1) = ( landmark.x() - pos.x() ) / squared_xy_norm;  
   result(1,2) = 0.0;
 
   
@@ -121,30 +125,33 @@ Eigen::Matrix<double, 2, 3> ParticleFeature::jacobi_measurement_model_visable( c
 Eigen::Matrix<double, 3, 3> ParticleFeature::jacobi_measurement_model_invisable( const base::Vector3d &landmark){
   
   Eigen::Matrix<double, 3, 3> result;
-  double norm_l2z = (landmark - p->pos).norm();
-  double squared_xy_norm = std::pow( landmark.x() - p->pos.x(), 2.0) + std::pow( landmark.y() - p->pos.y(), 2.0);
+  base::Vector3d pos = p->pos + (p->ori * model_config.sonar_pos);
+  
+  double norm_l2z = (landmark - pos).norm();
+  double squared_xy_norm = std::pow( landmark.x() - pos.x(), 2.0) + std::pow( landmark.y() - pos.y(), 2.0);
   double xy_norm = sqrt( squared_xy_norm);
   
-  result(0,0) = ( landmark.x() - p->pos.x() ) / norm_l2z;
-  result(0,1) = ( landmark.y() - p->pos.y() ) / norm_l2z;
-  result(0,2) = ( landmark.z() - p->pos.z() ) / norm_l2z;
+  result(0,0) = ( landmark.x() - pos.x() ) / norm_l2z;
+  result(0,1) = ( landmark.y() - pos.y() ) / norm_l2z;
+  result(0,2) = ( landmark.z() - pos.z() ) / norm_l2z;
   
-  result(1,0) = ( -( landmark.y() - p->pos.y()) ) / squared_xy_norm;
-  result(1,1) = ( landmark.x() - p->pos.x() ) / squared_xy_norm;  
+  result(1,0) = ( -( landmark.y() - pos.y()) ) / squared_xy_norm;
+  result(1,1) = ( landmark.x() - pos.x() ) / squared_xy_norm;  
   result(1,2) = 0.0;  
   
-  result(2,0) = (  (- ( landmark.z() - p->pos.z())) /  ( squared_xy_norm + std::pow( landmark.z() - p->pos.z(), 2.0) ) )
-  *  ( (landmark.x() - p->pos.x()) / xy_norm );
-  result(2,1) = (  (- ( landmark.z() - p->pos.z())) /  ( squared_xy_norm + std::pow( landmark.z() - p->pos.z(), 2.0) ) )
-  *  ( (landmark.y() - p->pos.y()) / xy_norm );
-  result(2,2) = xy_norm / ( squared_xy_norm + std::pow( landmark.z() - p->pos.z(), 2.0)  );
+  result(2,0) = (  (- ( landmark.z() - pos.z())) /  ( squared_xy_norm + std::pow( landmark.z() - pos.z(), 2.0) ) )
+  *  ( (landmark.x() - pos.x()) / xy_norm );
+  result(2,1) = (  (- ( landmark.z() - pos.z())) /  ( squared_xy_norm + std::pow( landmark.z() - pos.z(), 2.0) ) )
+  *  ( (landmark.y() - pos.y()) / xy_norm );
+  result(2,2) = xy_norm / ( squared_xy_norm + std::pow( landmark.z() - pos.z(), 2.0)  );
   
   return result;
 }
 
 bool ParticleFeature::is_visable( const base::Vector3d &landmark){
   
-  double angle_vertical = norm_angle(std::atan2( landmark.z() - p->pos.z(), (landmark - p->pos).block<2,1>(0,0).norm() ) - base::getPitch( p->ori) );
+  base::Vector3d pos = p->pos + (p->ori * model_config.sonar_pos);
+  double angle_vertical = norm_angle(std::atan2( landmark.z() - pos.z(), (landmark - pos).block<2,1>(0,0).norm() ) - base::getPitch( p->ori) );
   
   if( angle_vertical < model_config.sonar_vertical_angle + model_config.vertical_opening_angle && angle_vertical > model_config.sonar_vertical_angle - model_config.vertical_opening_angle)
     return true;
@@ -184,10 +191,11 @@ bool ParticleFeature::is_in_sensor_range(){
 bool ParticleFeature::heuristic( const base::Vector3d &meas, const double &tolerance){
   
   base::Vector3d pos;
+  base::Vector3d sensor_pos = p->pos + model_config.sonar_pos;
   double plane_range = meas.x() * cos( base::getPitch(p->ori) + model_config.sonar_vertical_angle);
   double yaw = base::getYaw( p->ori) + meas.y();
-  pos.x() = p->pos.x() + ( plane_range * std::cos( yaw) );  
-  pos.y() = p->pos.y() + ( plane_range * std::sin( yaw) );
+  pos.x() = sensor_pos.x() + ( plane_range * std::cos( yaw) );  
+  pos.y() = sensor_pos.y() + ( plane_range * std::sin( yaw) );
   pos.z() = average_state.z();
   
   if( (average_state - pos).norm() < tolerance)
